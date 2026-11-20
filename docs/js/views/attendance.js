@@ -178,7 +178,8 @@ export function render(root, d, ctx) {
 function subjCard(d, s) {
   const st = subjectStats(d, s);
   const v = verdict(st);
-  return '<div class="card subj-card">' +
+  const risk = st.total >= 3 ? (!st.ok ? " risk-bad" : st.canSkip === 0 ? " risk-warn" : "") : "";
+  return '<div class="card subj-card' + risk + '">' +
     '<div class="spread"><span class="row" style="gap:8px"><i class="dot" style="--c:' + esc(s.color) + '"></i><span class="mono muted">' + esc(s.code || "Subject") + "</span></span>" +
     '<button class="btn xs ghost" data-a="edit-subject" data-id="' + s.id + '">Edit</button></div>' +
     '<div><div class="h-sm">' + esc(s.name) + "</div>" + (s.faculty ? '<div class="muted" style="font-size:13px">' + esc(s.faculty) + "</div>" : "") + "</div>" +

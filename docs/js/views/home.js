@@ -3,6 +3,7 @@ import { overallStats, subjectStats, classesOn, nextClass, verdict, weekSummary 
 import { subjById, subjectForm, classForm, taskForm, toggleTask } from "../actions.js";
 import { classRows, bindClassRows } from "./attendance.js";
 import { emptyState } from "./common.js";
+import { streak, risks, nextPlan } from "../insights.js";
 
 let raf = 0;
 
@@ -68,6 +69,7 @@ export function render(root, d) {
             emptyState("Nothing due", "Deadlines and exams for the next three weeks appear here.", '<button class="btn sm" data-act="add-task">+ Add a task</button>')) +
         "</section>" +
       "</div>" +
+      headsUp(d) +
       weekSection(d) +
       (subs.length ? '<section class="section"><div class="section-head"><h2 class="h-md">Subjects</h2><a class="mono" href="#/attendance">Attendance →</a></div>' +
         '<div class="grid auto">' + subs.map(s => miniSubject(d, s)).join("") + "</div></section>" : "") +
@@ -216,5 +218,32 @@ function weekSection(d) {
         (w.focus.min || w.focus.prev ? delta(w.focus.min, w.focus.prev, { eps: 1, fmt: n => n + " min" }) : '<span class="delta flat">no sessions yet</span>') + "</a>" +
       '<a href="#/tasks" class="card hover" style="text-decoration:none"><div class="mono muted">Tasks done</div><div class="num" style="font-size:44px;margin:12px 0 8px">' + w.tasks.done + "</div>" +
         (w.tasks.done || w.tasks.prev ? delta(w.tasks.done, w.tasks.prev, { eps: 0.5, fmt: n => String(n) }) : '<span class="delta flat">nothing finished yet</span>') + "</a>" +
+    "</div></section>";
+}
+
+// ---------- "Heads up": streak, plan for the next class day, at-risk subjects ----------
+function headsUp(d) {
+  if (!d.subjects.some(x => !x.archived)) return "";
+  const st = streak(d), rk = risks(d), plan = nextPlan(d);
+  if (!st.days && !plan) return "";
+  const dayWord = plan ? (plan.isToday ? "Still to go today" : relDay(plan.date) === "Tomorrow" ? "Tomorrow" : DAYS_LONG[(new Date(plan.date + "T00:00").getDay() + 6) % 7]) : "";
+  const planRows = plan ? plan.items.map(it => {
+    const s = it.subject, n = it.count;
+    let pill, note;
+    if (it.tone === "skip") { pill = '<span class="pill good">Safe to skip</span>'; note = "You'd stay at " + pct(it.afterPct) + "% (target " + it.st.target + "%)"; }
+    else if (it.tone === "attend") { pill = '<span class="pill ' + (it.st.ok ? "warn" : "bad") + '">Better attend</span>'; note = it.st.ok ? "Missing would drop you to " + pct(it.afterPct) + "%" : "Already below " + it.st.target + "% — attend to recover"; }
+    else { pill = '<span class="pill">Not enough data</span>'; note = "Mark a few classes to get advice"; }
+    return '<div class="item" style="padding:12px 4px"><span class="swatch" style="--c:' + esc(s.color) + ';align-self:stretch"></span><div class="grow"><div class="title">' + esc(s.name) + (n > 1 ? ' <span class="muted" style="font-weight:400">× ' + n + "</span>" : "") + '</div><div class="sub">' + esc(note) + "</div></div>" + pill + "</div>";
+  }).join("") : "";
+  const watch = rk.length ? rk.map(r =>
+    '<a href="#/attendance" class="item" style="text-decoration:none;padding:12px 4px"><span class="swatch" style="--c:var(--' + (r.level === "bad" ? "bad" : "warn") + ');align-self:stretch"></span><div class="grow"><div class="title">' + esc(r.subject.name) + '</div><div class="sub">' +
+    (r.level === "bad" ? "Attend the next " + plural(r.st.need, "class", "classes") + " in a row to get back to " + r.st.target + "%" : "On the edge — one more miss drops you below " + r.st.target + "%") + '</div></div><span class="num ' + (r.level === "bad" ? "bad" : "warn") + '" style="font-size:24px">' + esc(pct(r.st.percent)) + "%</span></a>").join("") :
+    '<div class="empty" style="padding:22px 16px"><p class="h-sm" style="margin:0 0 4px">All clear</p><p style="margin:0">Every subject is above its target. Nice.</p></div>';
+  return '<section class="section"><div class="section-head"><h2 class="h-md">Heads up</h2>' +
+    (st.current ? '<span class="pill solid">◆ ' + st.current + "-day streak" + (st.best > st.current ? " · best " + st.best : "") + "</span>" : (st.best ? '<span class="mono">Best streak ' + st.best + " days</span>" : "")) + "</div>" +
+    '<div class="grid g2" style="gap:clamp(20px,4vw,56px);align-items:start">' +
+      '<div><div class="mono muted" style="margin-bottom:6px">' + (plan ? esc(dayWord) + " · what's safe to skip" : "Plan") + "</div>" +
+        (plan ? '<div class="list">' + planRows + '</div><p class="mono faint" style="margin:10px 0 0;font-size:10px">Suggestion only — your college’s rules decide.</p>' : '<p class="muted">No classes coming up — add them to your timetable.</p>') + "</div>" +
+      '<div><div class="mono muted" style="margin-bottom:6px">Watch list' + (rk.length ? " · " + rk.length : "") + '</div><div class="list" style="border-top:' + (rk.length ? "1px solid var(--line)" : "0") + '">' + watch + "</div></div>" +
     "</div></section>";
 }

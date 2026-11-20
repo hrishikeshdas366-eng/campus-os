@@ -31,9 +31,10 @@ export function render(root, d) {
   });
 
   root.innerHTML = '<div class="page">' +
-    pageHead("03", "Timetable", '<button class="btn" data-a="add-subject">+ Subject</button><button class="btn solid" data-a="add">+ Add class</button>', "Your week") +
+    pageHead("03", "Timetable", '<button class="btn" data-a="import">Import photo / PDF</button><button class="btn" data-a="add-subject">+ Subject</button><button class="btn solid" data-a="add">+ Add class</button>', "Your week") +
     (subs.length ? '<div class="week fade-up" style="--d:.2s">' + cols + "</div>" :
-      emptyState("Add subjects first", "Your timetable is built from your subjects.", '<button class="btn sm" data-a="add-subject">+ Add a subject</button>')) +
+      emptyState("Add subjects first", "Your timetable is built from your subjects — or import it from a photo or PDF and they're created for you.", '<button class="btn sm solid" data-a="import">Import photo / PDF</button> <button class="btn sm" data-a="add-subject">+ Add a subject</button>')) +
+    (subs.length && !entries.length ? '<div class="card" style="margin-top:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div class="grow"><div class="h-sm">Got your timetable as a photo or PDF?</div><div class="muted" style="font-size:13px">Import it and review the result — no typing every class.</div></div><button class="btn sm solid" data-a="import">Import photo / PDF</button></div>' : "") +
     (subs.length ? '<section class="section"><div class="section-head"><h2 class="h-md">Weekly load</h2><span class="mono">' + plural(entries.length, "class", "classes") + " / week</span></div>" +
       '<div class="grid auto">' + load.map(l => '<div class="card row" style="gap:14px"><span class="swatch" style="--c:' + esc(l.s.color) + ';align-self:stretch"></span><div class="grow"><div class="title" style="font-weight:600">' +
         esc(l.s.name) + '</div><div class="muted" style="font-size:13px">' + plural(l.n, "slot") + (l.hours ? " · " + (Math.round(l.hours * 10) / 10) + " h" : "") + '</div></div><button class="btn xs ghost" data-a="edit-subject" data-id="' + l.s.id + '">Edit</button></div>').join("") + "</div></section>" : "") +
@@ -43,7 +44,8 @@ export function render(root, d) {
     const b = e.target.closest("[data-a]");
     if (!b) return;
     const a = b.dataset.a;
-    if (a === "add") classForm(null, b.dataset.day != null ? { day: Number(b.dataset.day) } : null);
+    if (a === "import") import("../import.js").then(m => m.openImport());
+    else if (a === "add") classForm(null, b.dataset.day != null ? { day: Number(b.dataset.day) } : null);
     else if (a === "edit") classForm(d.timetable.find(x => x.id === b.dataset.id));
     else if (a === "add-subject") subjectForm(null);
     else if (a === "edit-subject") subjectForm(d.subjects.find(x => x.id === b.dataset.id));

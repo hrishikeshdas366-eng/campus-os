@@ -488,3 +488,30 @@ body.ob-open { overflow: hidden; }
   .wkgrid .num { font-size: 34px !important; margin: 8px 0 6px !important; }
   .wkgrid .delta { font-size: 10px; }
 }
+
+/* at-risk subject cards */
+.subj-card.risk-bad { border-color: color-mix(in srgb, var(--bad) 55%, transparent); box-shadow: inset 3px 0 0 var(--bad); }
+.subj-card.risk-warn { border-color: color-mix(in srgb, var(--warn) 50%, transparent); box-shadow: inset 3px 0 0 var(--warn); }
+.menu-link .hint.alert { color: var(--bad); opacity: 1; }
+
+/* timetable import */
+dialog.wide { width: min(980px, calc(100vw - 24px)); }
+.imp-drop { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; padding: 34px 18px; border: 1px dashed var(--line-2); border-radius: var(--radius); cursor: pointer; transition: border-color .2s, background .2s; }
+.imp-drop:hover, .imp-drop:focus-within { border-color: var(--ink); background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.imp-rows { display: flex; flex-direction: column; gap: 8px; max-height: min(52vh, 460px); overflow-y: auto; padding-right: 2px; }
+.imp-row { display: grid; gap: 8px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2);
+  grid-template-columns: 28px minmax(140px, 2fr) 74px 122px 122px minmax(80px, 1fr) 108px 34px;
+  grid-template-areas: "on sub day st en room kind del" ". hint hint hint hint hint hint hint"; }
+.imp-row.check { border-color: color-mix(in srgb, var(--warn) 60%, transparent); }
+.imp-row.off { opacity: .45; }
+.imp-row > * { min-width: 0; }
+.imp-on { grid-area: on; display: flex; } .imp-sub { grid-area: sub; } .imp-day { grid-area: day; } .imp-st { grid-area: st; } .imp-en { grid-area: en; }
+.imp-room { grid-area: room; } .imp-kind { grid-area: kind; } .imp-del { grid-area: del; } .imp-hint { grid-area: hint; font-size: 10.5px; }
+.imp-row input, .imp-row select { padding: 8px 10px; }
+@media (max-width: 900px) {
+  .imp-rows { max-height: 46vh; }
+  .imp-row { grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "on sub sub" ". day kind" ". st en" ". room del" ". hint hint"; }
+  .imp-del { justify-self: end; }
+  dialog .dlg-foot { flex-wrap: wrap; }
+  dialog .dlg-foot .left { flex: 1 1 100%; margin-right: 0; }
+}

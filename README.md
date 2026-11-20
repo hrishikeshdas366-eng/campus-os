@@ -37,9 +37,9 @@ config in `docs/js/firebase-config.js`.
 
 | Page | What it does |
 | --- | --- |
-| Home | Today's classes, deadlines and a one-glance semester summary |
+| Home | Today's classes, deadlines, a "Heads up" panel (streak, what's safe to skip, at-risk subjects) and a weekly recap |
 | Attendance | Mark Present / Absent / Cancelled, % per subject, "safe to miss" counts, what-if planner, calendar & history |
-| Timetable | Weekly grid with lectures, labs and rooms |
+| Timetable | Weekly grid with lectures, labs and rooms; import from a photo, screenshot or PDF (read on-device, reviewed before saving) |
 | Tasks | Assignments, projects and revision, grouped by urgency |
 | Exams | Countdowns, syllabus, scores and averages |
 | Grades | Semester GPA, CGPA (10- or 4-point) and a target-GPA planner |

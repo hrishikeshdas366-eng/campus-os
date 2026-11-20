@@ -98,7 +98,7 @@ function draw() {
     const n = parseSubjects(draft.subjects).length;
     body = '<p class="mono muted">03 / 03 — Ready</p><h1 class="display">' + maskLines(["You’re", "all set" + (draft.name ? ", " + esc(draft.name.split(" ")[0]) : "") + "."]) + "</h1>" +
       '<p class="lead">' + (n ? "Next, add your weekly classes so each day’s lectures show up ready to tick off." : "Add your subjects and weekly classes whenever you’re ready.") + "</p>" +
-      '<div class="ob-actions"><button class="btn solid" data-go="finish-tt">' + (n ? "Build my timetable" : "Open the app") + '</button><button class="btn" data-go="finish-home">Take me home</button></div>' +
+      '<div class="ob-actions"><button class="btn solid" data-go="finish-tt">' + (n ? "Build my timetable" : "Open the app") + '</button><button class="btn" data-go="finish-import">Import it from a photo</button><button class="btn ghost" data-go="finish-home">Take me home</button></div>' +
       '<p class="mono muted" style="margin-top:22px">Tip: install it from your browser’s Share menu to get an app icon.</p>';
   }
   el.innerHTML = '<div class="ob-top"><span class="mono">CAMPUS OS</span>' + (step ? dots : "") + (step ? '<button class="btn sm ghost" data-go="skip">Skip</button>' : "<span></span>") + '</div><div class="ob-main">' + body + "</div>";
@@ -125,6 +125,7 @@ document.addEventListener("click", e => {
   else if (g === "restore") { sync.signIn(); }
   else if (g === "finish-tt") finish(parseSubjects(draft.subjects).length ? "#/timetable" : "");
   else if (g === "finish-home") finish("");
+  else if (g === "finish-import") { finish("#/timetable"); setTimeout(() => import("./import.js").then(m => m.openImport()), 700); }
 });
 document.addEventListener("keydown", e => {
   if (el && e.key === "Enter" && e.target.matches && e.target.matches("#onboard input")) { e.preventDefault(); const n = el.querySelector('[data-go="next"]'); if (n) n.click(); }

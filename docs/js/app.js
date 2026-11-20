@@ -16,6 +16,7 @@ import * as focus from "./views/focus.js";
 import * as settings from "./views/settings.js";
 import * as sync from "./sync.js";
 import { initHaptics } from "./haptics.js";
+import { risks } from "./insights.js";
 import { maybeOnboard } from "./onboarding.js";
 
 const ROUTES = [
@@ -76,6 +77,11 @@ function show(opts) {
   }
   current = r;
   $$(".menu-link").forEach(a => a.classList.toggle("active", a.dataset.path === r.path));
+  try {
+    const bad = risks(store.data).filter(x => x.level === "bad").length;
+    const h = $('.menu-link[data-path="attendance"] .hint');
+    if (h) { h.textContent = bad ? bad + " at risk" : "Mark & track"; h.classList.toggle("alert", !!bad); }
+  } catch (_) { /* ignore */ }
 }
 
 const settings_route = () => ROUTES.find(r => r.path === "settings");
