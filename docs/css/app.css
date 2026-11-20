@@ -161,7 +161,8 @@ body.menu-open .menu-link .mask > span { transform: none; }
 .menu nav:hover .menu-link .display { opacity: .35; }
 .menu nav .menu-link:hover .display { opacity: 1; transform: translateX(14px); }
 .menu-link.active .display { font-style: italic; }
-.menu-link .hint { margin-left: auto; opacity: .5; }
+.menu-link .hint { margin-left: auto; opacity: .5; white-space: nowrap; }
+.menu nav { min-width: 0; }
 .menu aside { display: flex; flex-direction: column; justify-content: flex-end; gap: 22px; font-size: 14px; }
 .menu aside .h-md { max-width: 14ch; }
 .menu aside .row { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -386,8 +387,15 @@ dialog .dlg-foot .left { margin-right: auto; }
 }
 @media (max-width: 820px) {
   .g3, .g2 { grid-template-columns: minmax(0, 1fr); }
-  .menu { grid-template-columns: 1fr; padding-top: 84px; }
+  .menu { grid-template-columns: minmax(0, 1fr); padding-top: 84px; }
+  .menu nav { min-width: 0; justify-content: flex-start; }
   .menu aside { justify-content: flex-start; }
+  /* keep every menu row inside its divider line: number | name, caption underneath */
+  .menu-link { display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 14px; row-gap: 0; align-items: baseline; padding: 6px 0 10px; }
+  .menu-link .mono { width: auto; }
+  .menu-link .display { font-size: clamp(30px, 10vw, 56px); min-width: 0; }
+  .menu-link .hint { grid-column: 2; margin: 2px 0 0; white-space: nowrap; font-size: 10px; }
+  .menu nav .menu-link:hover .display { transform: none; }
   .hero-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 22px; }
   .page-head { grid-template-columns: 1fr; }
   .page-head .actions { justify-content: flex-start; }
