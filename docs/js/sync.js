@@ -17,7 +17,7 @@ const enc = new TextEncoder(), dec = new TextDecoder();
 const listeners = new Set();
 
 /** status: unavailable | signed-out | working | locked | synced | offline | error */
-export const S = { status: firebaseConfig ? "signed-out" : "unavailable", user: null, message: "", lastSync: 0 };
+export const S = { status: firebaseConfig ? "signed-out" : "unavailable", user: null, message: "", lastSync: 0, confirmedAt: 0 };
 export function onSyncChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 function setS(p) { Object.assign(S, p); listeners.forEach(l => l(S)); }
 
@@ -40,29 +40,30 @@ const saveSt = () => { try { if (S.user) localStorage.setItem(stKey(S.user.uid),
 const dirty = () => (store.data.modifiedAt || 0) !== (ST.baseModified || 0);
 const isEmpty = d => !(d.subjects.length || d.attendance.length || d.tasks.length || d.exams.length || d.notes.length || d.money.length || d.focus.length || d.links.length || d.semesters.length || d.timetable.length || (d.profile && d.profile.name));
 
-// ---------- remembered key (non-extractable, this device only) ----------
-function idb() {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open("campusos-sync", 1);
-    r.onupgradeneeded = () => r.result.createObjectStore("keys");
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
-  });
+// ---------- remembered key (this device only) ----------
+// Kept in localStorage next to the (already local) app data. Saved as raw bytes because Safari can
+// silently refuse to store CryptoKey objects in IndexedDB.
+const rkKey = uid => "campusos:k:" + uid;
+async function keyPut(uid, k, saltB64) {
+  try {
+    const raw = await crypto.subtle.exportKey("raw", k);
+    localStorage.setItem(rkKey(uid), JSON.stringify({ salt: saltB64, k: toB64(raw) }));
+    return !!localStorage.getItem(rkKey(uid));
+  } catch (_) { return false; }
 }
 async function keyGet(uid) {
-  try { const db = await idb(); return await new Promise(res => { const q = db.transaction("keys").objectStore("keys").get(uid); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } catch (_) { return null; }
+  try {
+    const v = JSON.parse(localStorage.getItem(rkKey(uid)) || "null");
+    if (!v) return null;
+    return { salt: v.salt, key: await crypto.subtle.importKey("raw", fromB64(v.k), { name: "AES-GCM" }, false, ["encrypt", "decrypt"]) };
+  } catch (_) { return null; }
 }
-async function keyPut(uid, val) {
-  try { const db = await idb(); await new Promise((res, rej) => { const tx = db.transaction("keys", "readwrite"); tx.objectStore("keys").put(val, uid); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (_) { /* ignore */ }
-}
-async function keyDel(uid) {
-  try { const db = await idb(); await new Promise(res => { const tx = db.transaction("keys", "readwrite"); tx.objectStore("keys").delete(uid); tx.oncomplete = res; tx.onerror = res; }); } catch (_) { /* ignore */ }
-}
+function keyDel(uid) { try { localStorage.removeItem(rkKey(uid)); } catch (_) { /* ignore */ } }
 
 // ---------- crypto ----------
 async function derive(pass, saltBytes, iter) {
   const base = await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey({ name: "PBKDF2", salt: saltBytes, iterations: iter || ITER, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", salt: saltBytes, iterations: iter || ITER, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
 }
 async function seal(obj) {
   let raw = enc.encode(JSON.stringify(obj)), z = 0;
@@ -265,6 +266,41 @@ async function stopSync(clearKey) {
 }
 
 // ---------- session ----------
+async function rememberKey(uid, k, saltB64) {
+  if (!(await keyPut(uid, k, saltB64))) toast("This browser won't let the app remember your passphrase, so you'll be asked each visit.", { error: true });
+}
+
+const CONFIRM_DAYS = 30, GRACE_DAYS = 7, DAY = 864e5;
+
+/** Every 30 days, ask "is this still you?". Ignoring it for a further 7 days signs the device out. */
+async function confirmIdentity(email) {
+  if (!ST.confirmedAt) { ST.confirmedAt = Date.now(); saveSt(); }
+  const age = Date.now() - ST.confirmedAt;
+  if (age > (CONFIRM_DAYS + GRACE_DAYS) * DAY) {
+    await signOut();
+    toast("You were signed out after a while. Sign in again to keep syncing.");
+    return false;
+  }
+  if (age > CONFIRM_DAYS * DAY) {
+    const pick = await choose("Still signed in as " + email + "?",
+      "It's been a while. Confirm this is still your account to keep syncing on this device.", [
+        { value: "yes", label: "Yes, that's me", hint: "Keep syncing. You won't be asked again for " + CONFIRM_DAYS + " days." },
+        { value: "switch", label: "Use a different account", hint: "Signs out here so you can sign in with another Google account." },
+        { value: "out", label: "Sign out", hint: "Stops syncing on this device. Your data stays on the device." },
+      ]);
+    if (pick === "yes") { ST.confirmedAt = Date.now(); saveSt(); setS({ confirmedAt: ST.confirmedAt }); return true; }
+    if (pick === "switch" || pick === "out") {
+      await signOut();
+      toast(pick === "switch" ? "Signed out. Sign in with the account you want to use." : "Signed out. Your data is still on this device.");
+      return false;
+    }
+    setS({ status: "locked", message: "Confirm your account to keep syncing." });
+    return false;
+  }
+  setS({ confirmedAt: ST.confirmedAt });
+  return true;
+}
+
 async function startSession(fbUser) {
   if (starting) return;
   starting = true;
@@ -273,14 +309,15 @@ async function startSession(fbUser) {
     ST = loadSt(uid);
     setS({ user: { uid, email: fbUser.email || "", name: fbUser.displayName || "", photo: fbUser.photoURL || "" }, status: "working", message: "" });
     try { localStorage.setItem(FLAG, uid); } catch (_) { /* ignore */ }
+    if (!(await confirmIdentity(fbUser.email || ""))) return;
     const snap = await fb.F.getDoc(ref(uid, "meta"));
     if (!snap.exists()) {                                // brand-new account: create the passphrase
       const v = await askPassphrase({ create: true });
       if (!v) { await signOut(); return; }
       salt = toB64(crypto.getRandomValues(new Uint8Array(16)));
       key = await derive(v.passphrase, fromB64(salt), ITER);
-      if (v.remember) keyPut(uid, { key, salt });
-      ST = {}; meta = null;
+      if (v.remember) await rememberKey(uid, key, salt);
+      ST = { confirmedAt: Date.now() }; meta = null; setS({ confirmedAt: ST.confirmedAt });
       await push();
       listen();
       return;
@@ -299,7 +336,7 @@ async function startSession(fbUser) {
       try {
         await unseal(k, m, await readChunks(uid, m));
         key = k;
-        if (v.remember) keyPut(uid, { key: k, salt: m.salt });
+        if (v.remember) await rememberKey(uid, k, m.salt);
       } catch (e) {
         if (e && e.name === "OperationError") error = "That passphrase didn't work.";
         else throw e;
@@ -322,6 +359,7 @@ function observeAuth() {
 // ---------- public API ----------
 /** Call once at startup: resumes an earlier session in the background (needs internet; otherwise stays dormant). */
 export function init() {
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (_) { /* ignore */ }
   subscribe(ev => { if (ev.type === "change" && !ev.remote && key && S.user) schedulePush(); });
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && pushTimer) push(); });
   window.addEventListener("online", () => { if (key && S.user && dirty()) push(); });
@@ -370,7 +408,7 @@ export async function signOut() {
   try { if (fb) await fb.A.signOut(fb.auth); } catch (_) { /* ignore */ }
   if (uid) keyDel(uid);
   try { localStorage.removeItem(FLAG); } catch (_) { /* ignore */ }
-  setS({ user: null, status: firebaseConfig ? "signed-out" : "unavailable", message: "" });
+  setS({ user: null, status: firebaseConfig ? "signed-out" : "unavailable", message: "", confirmedAt: 0 });
 }
 
 /** Delete this account's encrypted cloud data and the sign-in account itself. Local data is untouched. */

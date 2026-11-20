@@ -20,6 +20,7 @@ function syncSection() {
       '<span class="pill ' + (s.status === "synced" ? "good" : s.status === "error" ? "bad" : s.status === "locked" || s.status === "offline" ? "warn" : "") + '">' + esc(label) + "</span></div>" +
       (s.message ? '<p class="' + (s.status === "error" ? "bad" : "muted") + '" style="margin-top:0">' + esc(s.message) + "</p>" : "") +
       (s.lastSync ? '<p class="mono muted" style="margin-top:0">Last synced ' + esc(new Date(s.lastSync).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) + "</p>" : "") +
+      (s.confirmedAt ? '<p class="mono muted" style="margin-top:0">Stays signed in on this device · we\'ll ask you to confirm on ' + esc(new Date(s.confirmedAt + 30 * 864e5).toLocaleDateString([], { day: "numeric", month: "short" })) + "</p>" : "") +
       '<div class="row">' + (s.status === "locked" ? '<button class="btn solid" data-a="sync-unlock">Enter passphrase</button>' : '<button class="btn" data-a="sync-now">Sync now</button>') +
       '<button class="btn ghost" data-a="sync-out">Sign out</button><button class="btn danger" data-a="sync-del" style="margin-left:auto">Delete my cloud data</button></div>';
   }
