@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Privacy · Campus OS</title>
+  <meta name="description" content="How Campus OS handles your data: local by default, optional end-to-end-encrypted sync.">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    try { var t = JSON.parse(localStorage.getItem("campusos:v1") || "{}"); var th = (t.settings && t.settings.theme) || "dark";
+      if (th === "system") th = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", th); } catch (e) {}
+  </script>
+  <style>
+    .doc { max-width: 760px; margin: 0 auto; padding: 120px var(--gutter) 80px; }
+    .doc h1 { margin-bottom: 28px; }
+    .doc h2 { margin: 40px 0 10px; }
+    .doc p, .doc li { color: var(--ink-2); line-height: 1.65; }
+    .doc li { margin-bottom: 6px; }
+    .doc b { color: var(--ink); }
+    .doc a { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <header class="site-head"><a class="logo" href="./"><span>CAMPUS OS</span></a><div class="head-meta"><a class="menu-btn" href="./" style="text-decoration:none">Back to app</a></div></header>
+  <main class="doc">
+    <p class="mono muted">Privacy</p>
+    <h1 class="display h-lg">Your data,<br>your call.</h1>
+
+    <h2 class="h-md">The short version</h2>
+    <ul>
+      <li>Campus OS works <b>fully offline and without an account</b>. In that mode your data stays on your device and is never sent to us.</li>
+      <li>If you choose <b>cloud sync</b>, your data is <b>encrypted on your device</b> with a passphrase only you know before it is uploaded. The server only holds unreadable ciphertext, so nobody — including the developer — can read your attendance, notes, grades or budget.</li>
+      <li>There are <b>no ads, no trackers and no analytics</b> in the app.</li>
+    </ul>
+
+    <h2 class="h-md">Without sign-in (the default)</h2>
+    <p>Everything you enter is stored on the device you use: in the folder of the Mac app, or in your browser's local storage on the website. Clearing your browser's site data erases it, so use <b>Settings → Download backup</b> now and then.</p>
+
+    <h2 class="h-md">With cloud sync (optional)</h2>
+    <p>Signing in with Google lets the same data follow you across your phone, laptop and desktop. What is involved:</p>
+    <ul>
+      <li><b>Google sign-in</b> (via Firebase Authentication) gives the app your Google account's name, email address, profile picture and a unique ID. This is used only to identify your account. We never receive your Google password.</li>
+      <li><b>Encrypted data.</b> Before upload, the app compresses your data and encrypts it with AES-256 using a key derived from your sync passphrase. The key and passphrase never leave your device. Google's servers (Cloud Firestore) store only the ciphertext plus a timestamp and a device label.</li>
+      <li><b>Your passphrase can't be recovered.</b> If you forget it, the cloud copy can't be decrypted by anyone. Your devices keep their own copies, and you can start a fresh cloud copy.</li>
+      <li><b>Access control.</b> Database rules allow each signed-in user to access only their own encrypted record.</li>
+    </ul>
+
+    <h2 class="h-md">Deleting your data</h2>
+    <ul>
+      <li><b>Settings → Cloud sync → Delete my cloud data</b> removes your encrypted record and your sync account. Data on your devices is not touched.</li>
+      <li>To erase a device, use <b>Settings → Erase everything</b>.</li>
+    </ul>
+
+    <h2 class="h-md">Services involved</h2>
+    <p>The website is served as static files from GitHub Pages. Sync uses Google Firebase (Authentication and Cloud Firestore). These providers process technical data such as your IP address as part of delivering their service; see their own privacy policies.</p>
+
+    <h2 class="h-md">Questions or problems</h2>
+    <p>Open an issue at <a href="https://github.com/hrishikeshdas366-eng/campus-os/issues">github.com/hrishikeshdas366-eng/campus-os/issues</a>. Please don't post personal data there.</p>
+    <p class="mono faint">Last updated 20 November 2026</p>
+  </main>
+</body>
+</html>

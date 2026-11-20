@@ -14,6 +14,7 @@ import * as notes from "./views/notes.js";
 import * as budget from "./views/budget.js";
 import * as focus from "./views/focus.js";
 import * as settings from "./views/settings.js";
+import * as sync from "./sync.js";
 
 const ROUTES = [
   { path: "", name: "Home", mod: home, hint: "Overview" },
@@ -34,7 +35,7 @@ const QUOTES = [
   "Future you will thank present you.",
   "One class at a time.",
 ];
-const FOOTER = '<footer class="site-foot"><span class="mono">Campus OS</span><span class="mono">Your data stays on your device</span></footer>';
+const FOOTER = '<footer class="site-foot"><span class="mono">Campus OS</span><span class="mono">Private by design · optional encrypted sync · <a href="privacy.html">Privacy</a></span></footer>';
 
 let current = null;
 let cleanup = null;
@@ -75,6 +76,8 @@ function show(opts) {
   $$(".menu-link").forEach(a => a.classList.toggle("active", a.dataset.path === r.path));
 }
 
+const settings_route = () => ROUTES.find(r => r.path === "settings");
+
 // ---------- menu ----------
 function buildMenu() {
   $("#menu-nav").innerHTML = ROUTES.map((r, i) =>
@@ -82,7 +85,12 @@ function buildMenu() {
     '</span><span class="display">' + maskLines([esc(r.name)]) + '</span><span class="mono hint">' + esc(r.hint) + "</span></a>").join("");
   $("#menu-date").textContent = fmtDate(today(), { year: true });
   $("#menu-quote").textContent = QUOTES[new Date().getDate() % QUOTES.length];
-  $("#menu-storage").textContent = store.mode === "disk" ? "Saved on this Mac" : "Saved in this browser · back up in Settings";
+  menuStorage();
+}
+function menuStorage() {
+  const base = store.mode === "disk" ? "Saved on this Mac" : "Saved in this browser · back up in Settings";
+  const st = sync.S.status;
+  $("#menu-storage").textContent = base + (sync.S.user ? (st === "synced" ? " · Synced ✓" : st === "locked" ? " · Sync locked" : st === "offline" ? " · Offline" : st === "error" ? " · Sync problem" : " · Syncing…") : "");
 }
 function setMenu(open) {
   document.body.classList.toggle("menu-open", open);
@@ -151,6 +159,11 @@ async function boot() {
   clock(); setInterval(clock, 20000);
   const introRunning = intro();
   show({ defer: introRunning });
+  sync.init();
+  sync.onSyncChange(() => {
+    menuStorage();
+    if (current === settings_route() && !$("#dlg").open) show({ keep: true });
+  });
 
   window.addEventListener("hashchange", () => { setMenu(false); show(); });
   matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => applyTheme(store.data.settings.theme));

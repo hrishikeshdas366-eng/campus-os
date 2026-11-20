@@ -2,6 +2,30 @@ import { esc, toast, download, today, plural } from "../ui.js";
 import { store, update, replaceAll, emptyData } from "../store.js";
 import { demoData } from "../demo.js";
 import { pageHead } from "./common.js";
+import * as sync from "../sync.js";
+
+function syncSection() {
+  const s = sync.S;
+  const label = { working: "Syncing…", synced: "Up to date", locked: "Locked", offline: "Offline", error: "Problem" }[s.status] || "";
+  let body;
+  if (s.status === "unavailable") {
+    body = '<p class="muted" style="margin:0">Cloud sync isn\'t switched on for this copy of the app.</p>';
+  } else if (!s.user) {
+    body = '<p class="muted" style="max-width:64ch;margin-top:0">Use Campus OS on every device. Sign in with Google and your data syncs automatically. It is <b>encrypted on your device with a passphrase only you know</b> before it is uploaded, so nobody else can read it — not even the app\'s developer.</p>' +
+      '<div class="row"><button class="btn solid" data-a="sync-in"' + (s.status === "working" ? " disabled" : "") + '>Sign in with Google</button></div>' +
+      (s.message ? '<p class="bad" style="margin-bottom:0">' + esc(s.message) + "</p>" : "");
+  } else {
+    body = '<div class="row" style="gap:14px;margin-bottom:14px">' + (s.user.photo ? '<img src="' + esc(s.user.photo) + '" alt="" referrerpolicy="no-referrer" style="width:40px;height:40px;border-radius:50%">' : "") +
+      '<div class="grow"><div class="title" style="font-weight:600">' + esc(s.user.name || "Signed in") + '</div><div class="muted" style="font-size:13px">' + esc(s.user.email) + "</div></div>" +
+      '<span class="pill ' + (s.status === "synced" ? "good" : s.status === "error" ? "bad" : s.status === "locked" || s.status === "offline" ? "warn" : "") + '">' + esc(label) + "</span></div>" +
+      (s.message ? '<p class="' + (s.status === "error" ? "bad" : "muted") + '" style="margin-top:0">' + esc(s.message) + "</p>" : "") +
+      (s.lastSync ? '<p class="mono muted" style="margin-top:0">Last synced ' + esc(new Date(s.lastSync).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) + "</p>" : "") +
+      '<div class="row">' + (s.status === "locked" ? '<button class="btn solid" data-a="sync-unlock">Enter passphrase</button>' : '<button class="btn" data-a="sync-now">Sync now</button>') +
+      '<button class="btn ghost" data-a="sync-out">Sign out</button><button class="btn danger" data-a="sync-del" style="margin-left:auto">Delete my cloud data</button></div>';
+  }
+  return '<section class="section"><div class="section-head"><h2 class="h-md">Cloud sync</h2><span class="mono">Optional · end-to-end encrypted</span></div>' + body +
+    '<p class="mono muted" style="margin-top:18px"><a href="privacy.html">Privacy &amp; how sync works</a></p></section>';
+}
 
 function csvCell(v) { const s = String(v == null ? "" : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 
@@ -28,10 +52,12 @@ export function render(root, d) {
       '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" name="intro"' + (s.intro ? " checked" : "") + '><span>Show the intro animation when the app opens</span></label></div>' +
       '<div class="row" style="margin-top:16px"><button class="btn solid" type="submit">Save preferences</button></div></form>' +
 
+    syncSection() +
+
     '<section class="section"><div class="section-head"><h2 class="h-md">Your data</h2><span class="mono">' + (store.mode === "disk" ? "Saved on this Mac" : "Saved in this browser") + "</span></div>" +
       '<p class="muted" style="max-width:64ch;margin-top:0">' + (store.mode === "disk"
-        ? "Everything is stored in <code>" + esc(store.diskPath) + "</code> on this computer — nothing is sent anywhere, and a daily backup is kept alongside it."
-        : "Everything is stored in this browser on this device — nothing is sent to any server. Clearing site data erases it, so download a backup now and then.") + "</p>" +
+        ? "Everything is stored in <code>" + esc(store.diskPath) + "</code> on this computer, with a daily backup alongside it. Nothing leaves this computer unless you turn on cloud sync (which uploads only encrypted data)."
+        : "Everything is stored in this browser on this device. Nothing leaves it unless you turn on cloud sync (which uploads only encrypted data). Clearing site data erases the local copy, so download a backup now and then.") + "</p>" +
       '<div class="row"><button class="btn" data-a="export">Download backup (JSON)</button><button class="btn" data-a="csv">Export attendance (CSV)</button><label class="btn" style="cursor:pointer">Restore backup<input type="file" id="imp" accept="application/json,.json" class="hidden"></label></div>' +
       '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="demo">Load sample data</button><button class="btn danger" data-a="reset">Erase everything</button></div></section>' +
 
@@ -76,7 +102,12 @@ export function render(root, d) {
     const b = e.target.closest("[data-a]");
     if (!b) return;
     const a = b.dataset.a;
-    if (a === "export") download("campus-os-backup-" + today() + ".json", JSON.stringify(store.data, null, 1));
+    if (a === "sync-in") sync.signIn();
+    else if (a === "sync-now") sync.syncNow();
+    else if (a === "sync-unlock") sync.unlock();
+    else if (a === "sync-out") sync.signOut();
+    else if (a === "sync-del") sync.deleteAccount();
+    else if (a === "export") download("campus-os-backup-" + today() + ".json", JSON.stringify(store.data, null, 1));
     else if (a === "csv") {
       const subj = id => d.subjects.find(x => x.id === id);
       const rows = [["date", "subject", "code", "status", "note"]].concat(d.attendance.slice().sort((x, y) => x.date.localeCompare(y.date))

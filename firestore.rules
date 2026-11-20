@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Each signed-in user can touch only their own sync documents:
+    // one "meta" document plus up to ten encrypted data chunks (c0 … c9).
+    match /users/{uid}/sync/{docId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == uid
+                         && docId.matches('meta|c[0-9]');
+    }
+  }
+}

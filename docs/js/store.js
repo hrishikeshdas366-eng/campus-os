@@ -111,7 +111,18 @@ async function flush() {
 /** Mutate data with fn(data), then re-render and persist. */
 export function update(fn) {
   fn(store.data);
+  store.data.modifiedAt = Date.now();   // lets cloud sync tell what changed
   listeners.forEach(l => l({ type: "change" }));
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flush, 250);
+}
+
+/** Swap in data that came from the cloud, keeping its own modifiedAt (does not count as a local edit). */
+export function adopt(newData) {
+  const n = normalize(newData);
+  Object.keys(store.data).forEach(k => delete store.data[k]);
+  Object.assign(store.data, n);
+  listeners.forEach(l => l({ type: "change", remote: true }));
   clearTimeout(saveTimer);
   saveTimer = setTimeout(flush, 250);
 }

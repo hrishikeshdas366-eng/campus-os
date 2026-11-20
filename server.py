@@ -150,14 +150,14 @@ def main():
     port = DEFAULT_PORT
     if not port_free(port):
         if ours_running(port):
-            url = "http://127.0.0.1:{}".format(port)
+            url = "http://localhost:{}".format(port)
             print("Campus OS is already running at", url)
             if not no_browser:
                 webbrowser.open(url)
             return
         port = next(p for p in range(DEFAULT_PORT + 1, DEFAULT_PORT + 50) if port_free(p))
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    url = "http://127.0.0.1:{}".format(port)
+    url = "http://localhost:{}".format(port)   # "localhost" (not 127.0.0.1) so Google sign-in is allowed
     print("=" * 56)
     print("  CAMPUS OS is running  ->  {}".format(url))
     print("  Your data: {}".format(STORE_PATH))
