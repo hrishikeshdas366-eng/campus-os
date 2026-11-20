@@ -355,14 +355,19 @@ i.st-cancelled { background: var(--ink-3); }
 /* ---------- dialog ---------- */
 dialog {
   border: 1px solid var(--line-2); border-radius: 18px; padding: 0; width: min(620px, calc(100vw - 24px));
-  background: var(--card); color: var(--ink); max-height: calc(100vh - 40px);
+  background: var(--card); color: var(--ink);
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 28px);          /* visible area only (iOS Safari toolbars excluded) */
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  margin: auto;
 }
 dialog::backdrop { background: var(--overlay); backdrop-filter: blur(4px); }
 dialog[open] { animation: dlg .45s var(--ease-out); }
 @keyframes dlg { from { opacity: 0; transform: translateY(20px) scale(.98); } }
 dialog form { padding: 24px; }
 dialog .dlg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
-dialog .dlg-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; align-items: center; }
+dialog .dlg-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; align-items: center;
+  position: sticky; bottom: -24px; background: var(--card); padding: 14px 0 24px; margin-bottom: -24px; border-top: 1px solid var(--line); }
 dialog .dlg-foot .left { margin-right: auto; }
 
 /* ---------- toast ---------- */
