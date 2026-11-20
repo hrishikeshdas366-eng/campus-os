@@ -1,5 +1,5 @@
 // Attendance and grade maths
-import { weekday, today, toMin } from "./ui.js";
+import { weekday, today, toMin, addDays } from "./ui.js";
 
 /** present/absent → percentage, classes you can still miss, classes needed to recover. */
 export function attStats(present, absent, target) {
@@ -103,4 +103,37 @@ export function cgpa(scale, semesters) {
   let cr = 0, pts = 0;
   for (const s of semesters) { const r = semesterGPA(scale, s); cr += r.credits; pts += r.points; }
   return { credits: cr, gpa: cr ? pts / cr : null, points: pts };
+}
+
+// ---------- weekly summary (Mon–Sun, compared with the week before) ----------
+export function weekSummary(d) {
+  const t = today();
+  const start = addDays(t, -weekday(t)), end = addDays(start, 6);
+  const pStart = addDays(start, -7), pEnd = addDays(start, -1);
+  const active = new Set(d.subjects.filter(s => !s.archived).map(s => s.id));
+  const att = (a, b) => {
+    let p = 0, ab = 0;
+    d.attendance.forEach(r => { if (active.has(r.subjectId) && r.date >= a && r.date <= b) { if (r.status === "present") p++; else if (r.status === "absent") ab++; } });
+    return { present: p, absent: ab, total: p + ab, pct: p + ab ? p / (p + ab) * 100 : null };
+  };
+  const strip = Array.from({ length: 7 }, (_, i) => {
+    const ds = addDays(start, i);
+    const recs = d.attendance.filter(r => r.date === ds && active.has(r.subjectId));
+    return { ds, i, today: ds === t, future: ds > t, present: recs.filter(r => r.status === "present").length, absent: recs.filter(r => r.status === "absent").length };
+  });
+  const spendIn = (a, b) => d.money.filter(m => m.kind === "expense" && m.date >= a && m.date <= b);
+  const sum = l => l.reduce((x, m) => x + Number(m.amount), 0);
+  const cur = spendIn(start, end);
+  const cats = {};
+  cur.forEach(m => { cats[m.category] = (cats[m.category] || 0) + Number(m.amount); });
+  const top = Object.entries(cats).sort((a, b) => b[1] - a[1])[0] || null;
+  const focus = (a, b) => d.focus.filter(f => f.date >= a && f.date <= b).reduce((x, f) => x + f.minutes, 0);
+  const done = (a, b) => d.tasks.filter(x => x.done && x.doneAt && x.doneAt >= a && x.doneAt <= b).length;
+  return {
+    start, end, strip,
+    att: att(start, end), prevAtt: att(pStart, pEnd),
+    spend: { total: sum(cur), prev: sum(spendIn(pStart, pEnd)), top },
+    focus: { min: focus(start, end), prev: focus(pStart, pEnd) },
+    tasks: { done: done(start, end), prev: done(pStart, pEnd) },
+  };
 }

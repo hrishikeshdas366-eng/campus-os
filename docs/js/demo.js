@@ -62,6 +62,7 @@ export function demoData() {
   ];
   d.links = [{ id: uid(), title: "VisuAlgo — data structure animations", url: "https://visualgo.net", subjectId: S[0].id }];
   d.settings.monthlyBudget = 6000;
+  d.settings.onboarded = true;
   [["Food", 140, "Canteen lunch"], ["Transport", 60, "Metro card"], ["Books & supplies", 480, "Lab record"], ["Food", 90, "Coffee & snacks"], ["Fun", 350, "Movie"], ["Mobile & internet", 299, "Recharge"]]
     .forEach((m, i) => d.money.push({ id: uid(), date: addDays(t, -(i * 2 % 12)), amount: m[1], kind: "expense", category: m[0], note: m[2] }));
   d.money.push({ id: uid(), date: addDays(t, -9), amount: 5000, kind: "income", category: "Pocket money", note: "Monthly" });

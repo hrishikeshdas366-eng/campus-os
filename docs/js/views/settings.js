@@ -121,7 +121,8 @@ export function render(root, d) {
     } else if (a === "reset") {
       if (!confirm("Erase ALL data in Campus OS? This can't be undone.")) return;
       if (prompt('Type ERASE to confirm') !== "ERASE") return;
-      replaceAll(emptyData());
+      const fresh = emptyData(); fresh.settings.onboarded = true;
+      replaceAll(fresh);
       toast("Everything erased");
     }
   });

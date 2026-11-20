@@ -15,6 +15,8 @@ import * as budget from "./views/budget.js";
 import * as focus from "./views/focus.js";
 import * as settings from "./views/settings.js";
 import * as sync from "./sync.js";
+import { initHaptics } from "./haptics.js";
+import { maybeOnboard } from "./onboarding.js";
 
 const ROUTES = [
   { path: "", name: "Home", mod: home, hint: "Overview" },
@@ -160,6 +162,9 @@ async function boot() {
   const introRunning = intro();
   show({ defer: introRunning });
   sync.init();
+  initHaptics();
+  const startOnboarding = () => maybeOnboard();
+  if (introRunning) setTimeout(startOnboarding, 1900); else startOnboarding();
   sync.onSyncChange(() => {
     menuStorage();
     if (current === settings_route() && !$("#dlg").open) show({ keep: true });

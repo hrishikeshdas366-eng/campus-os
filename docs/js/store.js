@@ -22,7 +22,7 @@ export function emptyData() {
     app: "campus-os",
     version: 1,
     profile: { name: "", college: "", course: "", semester: "", target: 75, gradeScale: "10" },
-    settings: { theme: "dark", focusMinutes: 25, breakMinutes: 5, currency: "₹", monthlyBudget: 0, intro: true },
+    settings: { theme: "dark", focusMinutes: 25, breakMinutes: 5, currency: "₹", monthlyBudget: 0, intro: true, onboarded: false },
     subjects: [],    // {id,name,code,faculty,color,target|null,credits,archived}
     timetable: [],   // {id,subjectId,day(0=Mon),start,end,room,kind}
     attendance: [],  // {id,subjectId,date,status:present|absent|cancelled,note}

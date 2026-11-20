@@ -1,5 +1,5 @@
-import { esc, today, greeting, maskLines, fmtTime, relDay, daysBetween, plural, pct, DAYS_LONG } from "../ui.js";
-import { overallStats, subjectStats, classesOn, nextClass, verdict } from "../calc.js";
+import { esc, today, greeting, maskLines, fmtTime, relDay, daysBetween, plural, pct, money, fmtDate, DAYS, DAYS_LONG } from "../ui.js";
+import { overallStats, subjectStats, classesOn, nextClass, verdict, weekSummary } from "../calc.js";
 import { subjById, subjectForm, classForm, taskForm, toggleTask } from "../actions.js";
 import { classRows, bindClassRows } from "./attendance.js";
 import { emptyState } from "./common.js";
@@ -68,6 +68,7 @@ export function render(root, d) {
             emptyState("Nothing due", "Deadlines and exams for the next three weeks appear here.", '<button class="btn sm" data-act="add-task">+ Add a task</button>')) +
         "</section>" +
       "</div>" +
+      weekSection(d) +
       (subs.length ? '<section class="section"><div class="section-head"><h2 class="h-md">Subjects</h2><a class="mono" href="#/attendance">Attendance →</a></div>' +
         '<div class="grid auto">' + subs.map(s => miniSubject(d, s)).join("") + "</div></section>" : "") +
     "</div>";
@@ -177,4 +178,43 @@ function startCanvas(canvas) {
     if (!reduce) raf = requestAnimationFrame(frame);
   }
   raf = requestAnimationFrame(frame);
+}
+
+// ---------- "This week" recap ----------
+function delta(now, prev, opts) {
+  opts = opts || {};
+  if (prev == null || now == null) return "";
+  const diff = now - prev;
+  if (Math.abs(diff) < (opts.eps || 0.05)) return '<span class="delta flat">— same as last week</span>';
+  const up = diff > 0, good = opts.lowerIsBetter ? !up : up;
+  return '<span class="delta ' + (good ? "good" : "bad") + '">' + (up ? "↑ " : "↓ ") + esc(opts.fmt ? opts.fmt(Math.abs(diff)) : String(Math.round(Math.abs(diff)))) + " vs last week</span>";
+}
+
+function weekSection(d) {
+  const w = weekSummary(d);
+  const cur = d.settings.currency || "₹";
+  const hasAny = w.att.total || w.prevAtt.total || w.spend.total || w.spend.prev || w.focus.min || w.focus.prev || w.tasks.done || w.tasks.prev;
+  if (!d.subjects.length || !hasAny) return "";
+  const lines = [];
+  if (w.att.total) lines.push("You've been to " + w.att.present + " of " + plural(w.att.total, "class", "classes") + " this week (" + pct(w.att.pct) + "%)");
+  if (w.focus.min) lines.push("focused for " + (Math.round(w.focus.min / 6) / 10) + " h");
+  if (w.tasks.done) lines.push("finished " + plural(w.tasks.done, "task"));
+  const headline = lines.length ? lines.join(", ").replace(/^(.)/, c => c) + "." : "A quiet week so far.";
+  const strip = w.strip.map(s =>
+    '<div class="wd' + (s.today ? " today" : "") + (s.future ? " future" : "") + '"><div class="mono">' + DAYS[s.i] + '</div><div class="dots">' +
+    (s.future ? "" : (Array(Math.min(s.present, 6)).fill('<i class="st-present"></i>').join("") + Array(Math.min(s.absent, 6)).fill('<i class="st-absent"></i>').join("")) || '<i style="background:var(--line-2)"></i>') + "</div></div>").join("");
+  const spendTop = w.spend.top ? w.spend.top[0] + " · " + money(w.spend.top[1], cur) : "No spending logged";
+  return '<section class="section"><div class="section-head"><h2 class="h-md">This week</h2><span class="mono">' + esc(fmtDate(w.start, { weekday: false })) + " – " + esc(fmtDate(w.end, { weekday: false })) + "</span></div>" +
+    '<p class="muted" style="margin:0 0 18px;max-width:60ch">' + esc(headline) + "</p>" +
+    '<div class="wstrip" style="margin-bottom:14px">' + strip + "</div>" +
+    '<div class="grid g4 wkgrid">' +
+      '<a href="#/attendance" class="card hover" style="text-decoration:none"><div class="mono muted">Attendance</div><div class="num ' + (w.att.total ? (w.att.pct >= (d.profile.target || 75) ? "good" : "bad") : "faint") + '" style="font-size:44px;margin:12px 0 8px">' + (w.att.total ? esc(pct(w.att.pct)) + "%" : "—") + "</div>" +
+        (w.att.total && w.prevAtt.total ? delta(w.att.pct, w.prevAtt.pct, { eps: 0.5, fmt: n => (Math.round(n * 10) / 10) + " pts" }) : '<span class="delta flat">' + (w.att.total ? "first week of data" : "no classes marked yet") + "</span>") + "</a>" +
+      '<a href="#/budget" class="card hover" style="text-decoration:none"><div class="mono muted">Spent</div><div class="num" style="font-size:44px;margin:12px 0 8px">' + esc(money(w.spend.total, cur)) + "</div>" +
+        (w.spend.prev || w.spend.total ? delta(w.spend.total, w.spend.prev, { lowerIsBetter: true, eps: 1, fmt: n => money(n, cur) }) + '<div class="muted" style="font-size:12px;margin-top:6px">' + esc(spendTop) + "</div>" : '<span class="delta flat">nothing logged</span>') + "</a>" +
+      '<a href="#/focus" class="card hover" style="text-decoration:none"><div class="mono muted">Focus</div><div class="num" style="font-size:44px;margin:12px 0 8px">' + (Math.round(w.focus.min / 6) / 10) + '<span class="faint" style="font-size:.4em"> h</span></div>' +
+        (w.focus.min || w.focus.prev ? delta(w.focus.min, w.focus.prev, { eps: 1, fmt: n => n + " min" }) : '<span class="delta flat">no sessions yet</span>') + "</a>" +
+      '<a href="#/tasks" class="card hover" style="text-decoration:none"><div class="mono muted">Tasks done</div><div class="num" style="font-size:44px;margin:12px 0 8px">' + w.tasks.done + "</div>" +
+        (w.tasks.done || w.tasks.prev ? delta(w.tasks.done, w.tasks.prev, { eps: 0.5, fmt: n => String(n) }) : '<span class="delta flat">nothing finished yet</span>') + "</a>" +
+    "</div></section>";
 }

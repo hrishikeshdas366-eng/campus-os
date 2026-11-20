@@ -47,7 +47,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+button, a, input, select, textarea, label, summary { touch-action: manipulation; }
 body {
   background: var(--bg);
   color: var(--ink);
@@ -421,4 +422,69 @@ dialog .dlg-foot .left { margin-right: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ==========================================================================
+   Polish pass
+   ========================================================================== */
+/* empty states */
+.empty-ic { display: block; width: 54px; height: 54px; margin: 0 auto 14px; color: var(--ink-3); animation: float 6s ease-in-out infinite; }
+.empty-ic svg { width: 100%; height: 100%; display: block; }
+@keyframes float { 50% { transform: translateY(-5px); } }
+
+/* weekly recap */
+.wstrip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.wd { border: 1px solid var(--line); border-radius: 12px; padding: 10px 4px 12px; text-align: center; background: var(--card); }
+.wd.today { border-color: var(--ink); }
+.wd.future { opacity: .4; }
+.wd .mono { font-size: 10px; color: var(--ink-2); letter-spacing: .1em; }
+.wd .dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 3px; margin-top: 9px; min-height: 8px; }
+.wd .dots i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.delta { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; }
+.delta.good { color: var(--good); }
+.delta.bad { color: var(--bad); }
+.delta.flat { color: var(--ink-3); }
+
+/* touch press states */
+.btn:active, .seg button:active { transform: scale(.96); }
+.item:active, .class-row:active { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.card.hover:active, .slot:active, .note:active { transform: scale(.985); }
+@media (hover: none) {
+  .btn:hover:not(.solid):not(.on) { background: transparent; color: var(--ink); border-color: var(--line-2); }
+  .btn.solid:hover { background: var(--ink); color: var(--bg); }
+  .card.hover:hover { transform: none; }
+}
+
+/* onboarding */
+body.ob-open { overflow: hidden; }
+#onboard { position: fixed; inset: 0; z-index: 95; background: var(--bg); color: var(--ink); overflow-y: auto; display: flex; flex-direction: column;
+  padding: max(18px, env(safe-area-inset-top)) var(--gutter) max(22px, env(safe-area-inset-bottom)); transition: opacity .45s var(--ease); }
+#onboard.out { opacity: 0; pointer-events: none; }
+.ob-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 40px; }
+.ob-dots { display: flex; gap: 6px; }
+.ob-dots i { width: 24px; height: 3px; border-radius: 3px; background: var(--line-2); transition: background .4s; }
+.ob-dots i.on { background: var(--ink); }
+.ob-main { flex: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; max-width: 720px; margin: 0 auto; padding: 28px 0 20px; }
+.ob-main .display { font-size: clamp(46px, 11vw, 112px); margin: 14px 0 26px; }
+.ob-main .lead { color: var(--ink-2); font-size: 17px; line-height: 1.55; max-width: 46ch; margin: 0; }
+.ob-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 30px; }
+.ob-main .fade-up, .ob-main .lead, .ob-actions { opacity: 0; transform: translateY(14px); transition: opacity .8s var(--ease-out) .25s, transform .8s var(--ease-out) .25s; }
+#onboard.in .lead, #onboard.in .ob-actions { opacity: 1; transform: none; }
+#onboard.in .mask > span { transform: none; }
+
+/* bottom-sheet dialogs on phones */
+@keyframes sheet { from { opacity: 0; transform: translateY(48px); } }
+@media (max-width: 560px) {
+  dialog { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 22px 22px 0 0; border-bottom: 0; max-height: calc(100dvh - 12px); }
+  dialog[open] { animation: sheet .5s var(--ease-out); }
+  dialog form { padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); }
+  dialog .dlg-foot { bottom: calc(-20px - env(safe-area-inset-bottom)); margin-bottom: calc(-20px - env(safe-area-inset-bottom)); padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+  .wstrip { gap: 5px; }
+}
+
+@media (max-width: 560px) {
+  .wkgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .wkgrid .card { padding: 14px; }
+  .wkgrid .num { font-size: 34px !important; margin: 8px 0 6px !important; }
+  .wkgrid .delta { font-size: 10px; }
 }
