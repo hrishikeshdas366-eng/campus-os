@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Campus OS</title>
+  <meta name="description" content="Campus OS — the all-in-one college companion: attendance tracker, timetable, assignments, exams, GPA, notes, budget and focus timer. Works offline; your data stays on your device.">
+  <meta name="theme-color" content="#0b0b0b">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    // apply saved theme before paint
+    try {
+      var t = JSON.parse(localStorage.getItem("campusos:v1") || "{}");
+      var th = (t.settings && t.settings.theme) || "dark";
+      if (th === "system") th = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", th);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <div class="preloader" id="preloader" aria-hidden="true">
+    <div class="spread"><span class="mono">Campus OS</span><span class="mono">Loading your semester</span></div>
+    <div>
+      <div class="count num" id="pre-count">0</div>
+      <div class="bar" id="pre-bar"></div>
+    </div>
+  </div>
+
+  <header class="site-head">
+    <a class="logo" href="#/" aria-label="Campus OS home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 23 16 4l13 19" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M9 27h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="18" r="3" fill="currentColor"/></svg>
+      <span>CAMPUS OS</span>
+    </a>
+    <div class="head-meta">
+      <span class="mono clock-txt" id="head-clock"></span>
+      <span class="save-dot" id="save-dot" title="Saved"></span>
+      <button class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span id="menu-label">Menu</span><span class="burger" aria-hidden="true"></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="menu" id="menu" role="dialog" aria-label="Main menu">
+    <nav id="menu-nav"></nav>
+    <aside>
+      <p class="mono" id="menu-date"></p>
+      <p class="h-md" id="menu-quote">Everything your semester needs, in one place.</p>
+      <div class="row">
+        <button class="btn sm" data-quick="present">Mark today present</button>
+        <button class="btn sm" data-quick="task">+ Task</button>
+        <button class="btn sm" data-quick="note">+ Note</button>
+      </div>
+      <p class="mono" id="menu-storage"></p>
+    </aside>
+  </div>
+
+  <main id="app" tabindex="-1"></main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="dlg"></dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
