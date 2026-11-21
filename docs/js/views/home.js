@@ -4,6 +4,7 @@ import { subjById, subjectForm, classForm, taskForm, toggleTask } from "../actio
 import { classRows, bindClassRows } from "./attendance.js";
 import { emptyState } from "./common.js";
 import { streak, risks, nextPlan } from "../insights.js";
+import { nowCard, liveNow } from "./now.js";
 
 let raf = 0;
 
@@ -58,6 +59,7 @@ export function render(root, d) {
     '<div class="marquee" aria-hidden="true"><div class="track">' + tick + tick + "</div><div class=\"track\">" + tick + tick + "</div></div>" +
     '<div class="page" style="padding-top:clamp(40px,6vw,80px)">' +
       (subs.length ? "" : onboarding(d)) +
+      nowCard(d) + wrappedTeaser(d) +
       '<div class="grid g2" style="gap:clamp(20px,4vw,56px);align-items:start">' +
         '<section><div class="section-head"><h2 class="h-md">Today</h2><span class="mono">' + esc(DAYS_LONG[(new Date().getDay() + 6) % 7]) + "</span></div>" +
           (todays.length ? classRows(d, t) :
@@ -89,7 +91,8 @@ export function render(root, d) {
   });
 
   startCanvas(root.querySelector("#hero-canvas"));
-  return () => cancelAnimationFrame(raf);
+  const stopLive = liveNow(root, d);
+  return () => { cancelAnimationFrame(raf); stopLive(); };
 }
 
 function daysLabel(n) { return n === 0 ? "Today" : n === 1 ? "1 day" : n + " days"; }
@@ -246,4 +249,9 @@ function headsUp(d) {
         (plan ? '<div class="list">' + planRows + '</div><p class="mono faint" style="margin:10px 0 0;font-size:10px">Suggestion only — your college’s rules decide.</p>' : '<p class="muted">No classes coming up — add them to your timetable.</p>') + "</div>" +
       '<div><div class="mono muted" style="margin-bottom:6px">Watch list' + (rk.length ? " · " + rk.length : "") + '</div><div class="list" style="border-top:' + (rk.length ? "1px solid var(--line)" : "0") + '">' + watch + "</div></div>" +
     "</div></section>";
+}
+
+function wrappedTeaser(d) {
+  if (d.attendance.length < 20) return "";
+  return '<a href="#/wrapped" class="wr-teaser"><span class="mono">New · Semester Wrapped</span><span class="h-sm">See your semester in numbers ✦</span><span class="mono">Open →</span></a>';
 }

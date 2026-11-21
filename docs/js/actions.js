@@ -193,7 +193,12 @@ export function noteForm(note, preset) {
       { name: "subjectId", label: "Subject", type: "select", options: subjectOptions(d.subjects, true), value: n.subjectId || "" },
       { name: "pinned", label: "Pin to top", type: "checkbox", value: n.pinned },
       { name: "body", label: "Note", type: "textarea", rows: 12, value: n.body, full: true, placeholder: "Write anything…" },
+      { type: "html", full: true, html: '<button type="button" class="btn sm" id="ai-sum">✦ Summarise with AI</button><div id="ai-out" style="margin-top:10px"></div>' },
     ],
+    onMount: form => {
+      form.querySelector("#ai-sum").onclick = () => import("./aiui.js").then(m => m.summariseNote(
+        () => form.elements.title.value, () => form.elements.body.value, add => { form.elements.body.value += add; }));
+    },
     onSubmit: v => {
       if (!v.title && !v.body) { toast("Note is empty"); return false; }
       update(dd => {

@@ -21,7 +21,7 @@ export function render(root, d) {
         const n = daysBetween(t, e.date);
         return '<div class="item" data-a="edit" data-id="' + e.id + '" style="cursor:pointer;gap:22px"><div style="width:86px;flex:none"><div class="num ' + (n <= 3 ? "warn" : "") + '" style="font-size:44px">' + n + '</div><div class="mono muted">' + (n === 1 ? "day" : "days") + "</div></div>" +
           '<div class="grow"><div class="title" style="font-size:18px">' + esc(nameOf(e)) + '</div><div class="sub">' + esc([e.kind, fmtDate(e.date), e.time && fmtTime(e.time), e.room].filter(Boolean).join(" · ")) + "</div>" +
-          (e.syllabus ? '<div class="sub" style="margin-top:4px">' + esc(e.syllabus.slice(0, 140)) + "</div>" : "") + "</div></div>";
+          (e.syllabus ? '<div class="sub" style="margin-top:4px">' + esc(e.syllabus.slice(0, 140)) + "</div>" : "") + "</div>" + (n >= 1 ? '<button class="btn xs" data-a="plan" data-id="' + e.id + '">✦ Plan revision</button>' : "") + "</div>";
       }).join("") + "</div>" : emptyState("No exams scheduled", "Add quizzes, mid-sems and finals to get countdowns.", '<button class="btn sm" data-a="add">+ Add exam</button>')) +
     "</section>" +
     (past.length ? '<section class="section"><div class="section-head"><h2 class="h-md">Past</h2><span class="mono">' + past.length + '</span></div><div class="list">' + past.map(e => {
@@ -35,6 +35,7 @@ export function render(root, d) {
     const b = e.target.closest("[data-a]");
     if (!b) return;
     if (b.dataset.a === "add") examForm(null);
+    else if (b.dataset.a === "plan") import("../aiui.js").then(m => m.planRevision(d.exams.find(x => x.id === b.dataset.id)));
     else if (b.dataset.a === "edit") examForm(d.exams.find(x => x.id === b.dataset.id));
   });
 }

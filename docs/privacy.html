@@ -47,6 +47,21 @@
       <li><b>Access control.</b> Database rules allow each signed-in user to access only their own encrypted record.</li>
     </ul>
 
+    <h2 class="h-md">Campus AI (optional, and different)</h2>
+    <p>Campus AI uses Google's <b>Gemini</b> (through Firebase AI Logic). It is <b>off until you turn it on</b>, and it only sends text when you press a ✦ button:</p>
+    <ul>
+      <li><b>Summarise</b> sends the text of that one note. <b>Revision plan</b> sends the subject name, the syllabus you typed and the exam date. <b>Ask</b> sends your question plus an anonymous snapshot of your attendance numbers, classes, task titles and exam dates — never your name, college, notes or spending. The Ask page shows you the exact snapshot.</li>
+      <li><b>This is not end-to-end encrypted.</b> Gemini has to read the text to answer, so Google processes it under its own terms. Don't send anything you wouldn't want Google to process.</li>
+      <li>Conversations are kept only in memory on your device and are not saved by Campus OS.</li>
+    </ul>
+
+    <h2 class="h-md">Reminders, calendar and offline use</h2>
+    <ul>
+      <li><b>Reminders</b> are local notifications generated on your device from your own data; nothing is sent to a server to schedule them. Your choices (on/off, lead time) are stored on that device only.</li>
+      <li><b>Calendar export</b> creates a file on your device; you decide where it goes.</li>
+      <li>The <b>installable app</b> keeps a cached copy of the site's own files (a service worker) so it opens offline. It never caches your data on any server.</li>
+    </ul>
+
     <h2 class="h-md">Deleting your data</h2>
     <ul>
       <li><b>Settings → Cloud sync → Delete my cloud data</b> removes your encrypted record and your sync account. Data on your devices is not touched.</li>
@@ -54,11 +69,11 @@
     </ul>
 
     <h2 class="h-md">Services involved</h2>
-    <p>The website is served as static files from GitHub Pages. Sync uses Google Firebase (Authentication and Cloud Firestore). These providers process technical data such as your IP address as part of delivering their service; see their own privacy policies.</p>
+    <p>The website is served as static files from GitHub Pages. Sync uses Google Firebase (Authentication and Cloud Firestore) and, if you use Campus AI, Google Gemini. These providers process technical data such as your IP address as part of delivering their service; see their own privacy policies.</p>
 
     <h2 class="h-md">Questions or problems</h2>
     <p>Open an issue at <a href="https://github.com/hrishikeshdas366-eng/campus-os/issues">github.com/hrishikeshdas366-eng/campus-os/issues</a>. Please don't post personal data there.</p>
-    <p class="mono faint">Last updated 20 November 2026</p>
+    <p class="mono faint">Last updated 22 November 2026</p>
   </main>
 </body>
 </html>

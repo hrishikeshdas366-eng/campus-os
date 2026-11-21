@@ -4,6 +4,29 @@ import { store, update, replaceAll, emptyData } from "../store.js";
 import { demoData } from "../demo.js";
 import { pageHead } from "./common.js";
 import * as sync from "../sync.js";
+import * as rem from "../reminders.js";
+import { canInstall, installFlow, isStandalone } from "../install.js";
+import { calendarExportForm } from "../ics.js";
+import { aiOn, setAi, aiAvailable } from "../ai.js";
+
+function deviceSection() {
+  const R = rem.prefs(), on = R.on && rem.permission() === "granted";
+  const blocked = rem.supported() && rem.permission() === "denied";
+  return '<section class="section" id="dev"><div class="section-head"><h2 class="h-md">App &amp; reminders</h2><span class="mono">This device</span></div>' +
+    '<div class="form-grid">' +
+      '<div class="full row" style="gap:10px">' + (isStandalone() ? '<span class="pill good">Installed ✓</span>' : canInstall() ? '<button class="btn" data-d="install">Install as an app</button>' : '<span class="muted" style="font-size:13px">Open this site in Chrome, Edge or Safari to install it as an app.</span>') +
+        '<button class="btn" data-d="cal">Add to calendar (.ics)</button></div>' +
+      '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="r-on"' + (on ? " checked" : "") + '><span>Reminders on this device</span></label>' +
+      '<label class="field"><span>Class alert</span><select id="r-lead">' + [5, 10, 15, 30].map(m => '<option value="' + m + '"' + (R.lead === m ? " selected" : "") + ">" + m + " min before</option>").join("") + "</select></label>" +
+      '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="r-mark"' + (R.markAfter ? " checked" : "") + '><span>Nudge me to mark attendance after class</span></label>' +
+      '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="r-dig"' + (R.digest ? " checked" : "") + '><span>Morning summary (classes, deadlines, exams)</span></label>' +
+    "</div>" +
+    (blocked ? '<p class="bad" style="font-size:13px">Notifications are blocked for this site — allow them in your browser or phone settings.</p>' : "") +
+    '<p class="muted" style="font-size:13px;max-width:64ch;margin-top:10px">Reminders work while Campus OS is open or running in the background (installed apps on a computer; on iPhone add it to your Home Screen first). For alerts that fire even when the app is closed, use <b>Add to calendar</b> — your phone’s own Calendar does the reminding.</p></section>' +
+    (aiAvailable() ? '<section class="section" id="aisec"><div class="section-head"><h2 class="h-md">Campus AI ✦</h2><span class="mono">This device</span></div>' +
+      '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="ai-on"' + (aiOn() ? " checked" : "") + '><span>Allow Campus AI (Google Gemini)</span></label>' +
+      '<p class="muted" style="font-size:13px;max-width:64ch;margin-top:10px">Summarise notes, plan revision and ask about your week. Text goes to Google <b>only when you press a ✦ button</b> and is <b>not</b> end-to-end encrypted like your synced data. Needs Google sign-in. <a href="#/assistant">Open Ask AI →</a></p></section>' : "");
+}
 
 function syncSection() {
   const s = sync.S;
@@ -55,6 +78,7 @@ export function render(root, d) {
       (hapticsSupported() ? '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="hap"' + (hapticsOn() ? " checked" : "") + '><span>Haptic taps on this device <span class="muted">(applies instantly, this device only)</span></span></label>' : "") + "</div>" +
       '<div class="row" style="margin-top:16px"><button class="btn solid" type="submit">Save preferences</button></div></form>' +
 
+    deviceSection() +
     syncSection() +
 
     '<section class="section"><div class="section-head"><h2 class="h-md">Your data</h2><span class="mono">' + (store.mode === "disk" ? "Saved on this Mac" : "Saved in this browser") + "</span></div>" +
@@ -76,6 +100,22 @@ export function render(root, d) {
       dd.profile.gradeScale = f.get("gradeScale");
     });
     toast("Profile saved");
+  });
+  root.addEventListener("click", e => { const b = e.target.closest("[data-d]"); if (!b) return; if (b.dataset.d === "install") installFlow(); else if (b.dataset.d === "cal") calendarExportForm(); });
+  const r = id => root.querySelector(id);
+  if (r("#r-on")) {
+    r("#r-on").addEventListener("change", async e => {
+      if (e.target.checked) { try { await rem.enable(); toast("Reminders on"); } catch (err) { e.target.checked = false; toast(err.message, { error: true }); } }
+      else { rem.disable(); toast("Reminders off"); }
+    });
+    r("#r-lead").addEventListener("change", e => rem.setPrefs({ lead: Number(e.target.value) }));
+    r("#r-mark").addEventListener("change", e => rem.setPrefs({ markAfter: e.target.checked }));
+    r("#r-dig").addEventListener("change", e => rem.setPrefs({ digest: e.target.checked }));
+  }
+  if (r("#ai-on")) r("#ai-on").addEventListener("change", async e => {
+    if (!e.target.checked) { setAi(false); toast("Campus AI turned off"); return; }
+    const ai = await import("../ai.js");
+    if (await ai.consent()) { setAi(true); toast("Campus AI allowed"); } else e.target.checked = false;
   });
   const hap = root.querySelector("#hap");
   if (hap) hap.addEventListener("change", () => { setHaptics(hap.checked); if (hap.checked) haptic(true); toast(hap.checked ? "Haptics on" : "Haptics off"); });

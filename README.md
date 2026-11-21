@@ -33,6 +33,14 @@ To run your own copy: create a Firebase project, enable Google sign-in and Fires
 `firestore.rules`, add your site's domain under Authentication → Authorised domains, and put your web-app
 config in `docs/js/firebase-config.js`.
 
+## Installable app, reminders and calendar
+- **Install**: add Campus OS to your Home Screen (iPhone: Share → Add to Home Screen) or install it from Chrome/Edge. It opens full screen and works offline.
+- **Reminders** (Settings → App & reminders): class alerts, "mark your attendance" nudges and a morning summary. They fire while the app is open or running in the background — browsers can't do more without a server.
+- **Add to calendar (.ics)**: classes (weekly), exams and deadlines with built-in alerts, so your phone's own Calendar reminds you even when the app is closed.
+
+## Campus AI (optional)
+Gemini via Firebase AI Logic: summarise notes, build a revision plan from a syllabus, and ask questions about your week. Off by default, needs Google sign-in, sends only what each ✦ button says. To switch it on for your own Firebase project, open *Firebase console → AI Logic → Get started* and pick the Gemini Developer API.
+
 ## What's inside
 
 | Page | What it does |

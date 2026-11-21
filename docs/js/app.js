@@ -14,10 +14,14 @@ import * as notes from "./views/notes.js";
 import * as budget from "./views/budget.js";
 import * as focus from "./views/focus.js";
 import * as settings from "./views/settings.js";
+import * as wrapped from "./views/wrapped.js";
+import * as assistant from "./views/assistant.js";
 import * as sync from "./sync.js";
 import { initHaptics } from "./haptics.js";
 import { risks } from "./insights.js";
 import { maybeOnboard } from "./onboarding.js";
+import { initProfile } from "./profile.js";
+import { startReminders } from "./reminders.js";
 
 const ROUTES = [
   { path: "", name: "Home", mod: home, hint: "Overview" },
@@ -29,7 +33,9 @@ const ROUTES = [
   { path: "notes", name: "Notes", mod: notes, hint: "Notes & links" },
   { path: "budget", name: "Budget", mod: budget, hint: "Money" },
   { path: "focus", name: "Focus", mod: focus, hint: "Timer" },
+  { path: "assistant", name: "Ask AI", mod: assistant, hint: "Gemini ✦" },
   { path: "settings", name: "Settings", mod: settings, hint: "You & data" },
+  { path: "wrapped", name: "Wrapped", mod: wrapped, hint: "Your semester", hidden: true },
 ];
 const QUOTES = [
   "Everything your semester needs, in one place.",
@@ -88,7 +94,7 @@ const settings_route = () => ROUTES.find(r => r.path === "settings");
 
 // ---------- menu ----------
 function buildMenu() {
-  $("#menu-nav").innerHTML = ROUTES.map((r, i) =>
+  $("#menu-nav").innerHTML = ROUTES.filter(r => !r.hidden).map((r, i) =>
     '<a class="menu-link" href="#/' + r.path + '" data-path="' + r.path + '"><span class="mono">' + String(i + 1).padStart(2, "0") +
     '</span><span class="display">' + maskLines([esc(r.name)]) + '</span><span class="mono hint">' + esc(r.hint) + "</span></a>").join("");
   $("#menu-date").textContent = fmtDate(today(), { year: true });
@@ -169,6 +175,12 @@ async function boot() {
   show({ defer: introRunning });
   sync.init();
   initHaptics();
+  const refreshProfile = initProfile();
+  startReminders(() => store.data);
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    navigator.serviceWorker.register("sw.js").catch(e => console.warn("Offline mode unavailable:", e));
+    navigator.serviceWorker.addEventListener("message", ev => { if (ev.data && ev.data.type === "go" && ev.data.url) location.hash = String(ev.data.url).replace(/^.*#/, "#"); });
+  }
   const startOnboarding = () => maybeOnboard();
   if (introRunning) setTimeout(startOnboarding, 1900); else startOnboarding();
   sync.onSyncChange(() => {
@@ -186,6 +198,7 @@ async function boot() {
       dot.title = store.status === "error" ? "Couldn't save to disk — kept in the browser instead" : store.status === "saving" ? "Saving…" : "Saved";
       return;
     }
+    refreshProfile();
     if (store.data.settings.theme !== lastTheme) { lastTheme = store.data.settings.theme; applyTheme(lastTheme); }
     show({ keep: true });
   });
