@@ -1,6 +1,6 @@
 // Campus AI — Gemini through Firebase AI Logic. Entirely opt-in; nothing is sent until you press a ✦ button.
 // Unlike your synced data, text sent here is NOT end-to-end encrypted (Google's Gemini has to read it to answer).
-import { firebaseConfig } from "./firebase-config.js";
+import { firebaseConfig, appCheckSiteKey } from "./firebase-config.js";
 import { today, addDays, daysBetween, weekday, DAYS_LONG, fmtTime, toast } from "./ui.js";
 import { classesOn, subjectStats } from "./calc.js";
 import * as sync from "./sync.js";
@@ -21,6 +21,13 @@ async function load() {
   if (ai) return ai;
   const [appM, aiM] = await Promise.all([import(SDK + "firebase-app.js"), import(SDK + "firebase-ai.js")]);
   const app = appM.getApps().find(a => a.name === "campus-ai") || appM.initializeApp(firebaseConfig, "campus-ai");
+  // App Check proves each AI request comes from this website, so copied config can't spend your Gemini quota.
+  if (appCheckSiteKey && !["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
+    try {
+      const acM = await import(SDK + "firebase-app-check.js");
+      acM.initializeAppCheck(app, { provider: new acM.ReCaptchaV3Provider(appCheckSiteKey), isTokenAutoRefreshEnabled: true });
+    } catch (e) { console.warn("App Check unavailable:", e); }
+  }
   ai = { M: aiM, inst: aiM.getAI(app, { backend: new aiM.GoogleAIBackend() }) };
   return ai;
 }

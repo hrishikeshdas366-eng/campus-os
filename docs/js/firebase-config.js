@@ -9,3 +9,7 @@ export const firebaseConfig = {
   messagingSenderId: "562306818861",
   appId: "1:562306818861:web:8ddd68690786195b6869a4",
 };
+
+// Public reCAPTCHA v3 site key used by Firebase App Check (it only proves requests come from this website — it is not a secret).
+// Register it in Firebase console → App Check → your web app → reCAPTCHA. Set to "" to skip App Check.
+export const appCheckSiteKey = "6LcEGCwuAAAAAOIkNOjhgSBkdRq8MjM1ozGOv9Fl";
