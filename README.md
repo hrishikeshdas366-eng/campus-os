@@ -17,7 +17,7 @@ Keep the Terminal window open while you use it; Ctrl+C stops it.
 
 ## Run it on the web
 
-The `docs/` folder is a static site. It is live at **https://campus-os-1el.pages.dev** (Cloudflare Pages, redeployed automatically on every push to `main`; build command empty, output directory `docs`). On the web, data is stored in the
+The `docs/` folder is a static site. It is live at **https://campusos-app.pages.dev** (Cloudflare Pages, redeployed automatically on every push to `main`; build command empty, output directory `docs`). On the web, data is stored in the
 browser's localStorage on that device. Use **Settings → Download backup** to move data between
 devices or into the Mac app.
 
