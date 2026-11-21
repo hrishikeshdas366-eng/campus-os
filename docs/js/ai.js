@@ -34,7 +34,8 @@ async function load() {
 
 function friendly(e) {
   const m = String((e && (e.message || e.code)) || e);
-  if (/429|quota|rate|exhaust|too many/i.test(m)) return "Campus AI is busy right now (the free limit was reached). Try again in a minute.";
+  if (/\b429\b|quota|rate.?limit|exhaust|too many requests/i.test(m)) return "Campus AI is busy right now (the free limit was reached). Try again in a minute.";
+  if (/app check/i.test(m)) return "Couldn't verify this request came from the Campus OS website. Reload the page and try again.";
   if (/api-not-enabled|API.{0,40}enabled|api.?key|permission|403|disabled|has not been used/i.test(m)) return "The AI service isn't switched on for this app yet.";
   if (/timed out/i.test(m)) return "The AI is taking too long. Try again in a moment.";
   if (/network|fetch|offline|Failed to/i.test(m)) return "Couldn't reach the AI. Check your internet connection.";
