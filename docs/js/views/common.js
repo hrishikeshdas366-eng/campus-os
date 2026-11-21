@@ -1,4 +1,5 @@
 import { esc, maskLines } from "../ui.js";
+import { polish } from "../fx.js";
 
 export function pageHead(index, title, actions, sub) {
   return '<header class="page-head">' +
@@ -37,5 +38,6 @@ export function emptyState(title, text, btn, icon) {
 
 /** Trigger mask/fade-in animations on freshly rendered content. */
 export function reveal(root) {
+  try { polish(root); } catch (_) { /* motion is optional */ }
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add("in")));
 }

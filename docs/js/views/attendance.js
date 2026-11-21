@@ -4,6 +4,7 @@ import { store, update, uid } from "../store.js";
 import { attStats, subjectStats, overallStats, verdict, classesOn } from "../calc.js";
 import { mark, unmark, recordForm, bulkForm, subjectForm, subjById, subjectTag } from "../actions.js";
 import { pageHead, emptyState } from "./common.js";
+import { flash } from "../fx.js";
 
 let viewDate = today();
 let cal = null; // {y, m}
@@ -20,7 +21,7 @@ export function classRows(d, date) {
       ? '<button class="btn xs ghost" data-ca="unmark" data-rec="' + rec.id + '">Undo</button>'
       : [["present", "Present", "good-b"], ["absent", "Absent", "bad-b"], ["cancelled", "Cancelled", ""]].map(a =>
         '<button class="btn xs ' + a[2] + '" data-ca="mark" data-st="' + a[0] + '" data-sub="' + c.subjectId + '" data-slot="' + c.id + '">' + a[1] + "</button>").join("");
-    return '<div class="class-row' + (rec ? " marked-" + rec.status : "") + '">' +
+    return '<div class="class-row' + (rec ? " marked-" + rec.status : "") + (rec && rec.id === flash.id ? " flash" : "") + '">' +
       '<span class="swatch" style="--c:' + esc(s ? s.color : "") + '"></span>' +
       '<div class="time">' + esc(fmtTime(c.start)) + (c.end ? "<br>" + esc(fmtTime(c.end)) : "") + "</div>" +
       '<div><div class="name">' + esc(s ? s.name : "Subject") + '</div><div class="meta">' + esc([c.kind, c.room, s && s.code].filter(Boolean).join(" · ")) + "</div></div>" +

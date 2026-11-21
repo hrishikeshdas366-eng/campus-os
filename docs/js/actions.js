@@ -1,4 +1,5 @@
 // Actions shared across views (forms + mutations)
+import { checkStreak, pop, celebrate, flash } from "./fx.js";
 import { store, update, uid } from "./store.js";
 import { openForm, toast, subjectOptions, today, DAYS_LONG, PALETTE, esc } from "./ui.js";
 
@@ -85,10 +86,12 @@ export function classForm(entry, preset) {
 export function mark(subjectId, status, date, opts) {
   const id = uid();
   const rec = { id, subjectId, date: date || today(), status, note: "", slotId: opts?.slotId || "" };
+  flash.id = id; setTimeout(() => { if (flash.id === id) flash.id = ""; }, 1500);
   update(dd => dd.attendance.push(rec));
   if (opts?.silent) return id;
   const s = subjById(subjectId);
-  toast((s ? s.name : "Class") + " · " + status, {
+  const hit = status === "present" ? checkStreak(D()) : 0;
+  toast((s ? s.name : "Class") + " · " + status + (hit ? " · ◆ " + hit + "-day streak!" : ""), {
     action: { label: "Undo", run: () => update(dd => { dd.attendance = dd.attendance.filter(r => r.id !== id); }) },
   });
   return id;
@@ -179,6 +182,8 @@ export function toggleTask(id) {
     t.done = !t.done;
     t.doneAt = t.done ? today() : "";
   });
+  const t = D().tasks.find(x => x.id === id);
+  if (t && t.done) { if (D().tasks.length >= 3 && !D().tasks.some(x => !x.done)) { celebrate(); toast("All caught up ✦"); } else pop(); }
 }
 
 // ---------- notes ----------
