@@ -188,7 +188,17 @@ async function boot() {
     if (current === settings_route() && !$("#dlg").open) show({ keep: true });
   });
 
-  window.addEventListener("hashchange", () => { setMenu(false); show(); });
+  // leave gracefully: fade the old page out, then bring the new one in
+  let navTimer = 0;
+  window.addEventListener("hashchange", () => {
+    setMenu(false);
+    clearTimeout(navTimer);
+    const app = $("#app");
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || !app || !app.classList.contains("in") || parseRoute() === current) { show(); return; }
+    app.classList.add("leaving");
+    navTimer = setTimeout(() => show(), 170);
+  });
   matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => applyTheme(store.data.settings.theme));
   let lastTheme = store.data.settings.theme;
   subscribe(ev => {

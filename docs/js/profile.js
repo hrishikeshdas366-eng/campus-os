@@ -1,5 +1,5 @@
 // Profile menu (top right): who you are, quick settings, and shortcuts — like the account menu on any big site.
-import { esc, openForm, toast, plural } from "./ui.js";
+import { esc, openForm, toast, plural, today, download, pct } from "./ui.js";
 import { store, update } from "./store.js";
 import * as sync from "./sync.js";
 import { applyTheme } from "./theme.js";
@@ -8,6 +8,9 @@ import * as rem from "./reminders.js";
 import { canInstall, installFlow, isStandalone } from "./install.js";
 import { calendarExportForm } from "./ics.js";
 import { aiOn } from "./ai.js";
+import { overallStats } from "./calc.js";
+import { streak } from "./insights.js";
+import { taskForm, noteForm } from "./actions.js";
 
 const pop = () => document.getElementById("profile-pop");
 const btn = () => document.getElementById("profile-btn");
@@ -40,17 +43,36 @@ function tog(id, label, on) {
   return '<label class="pp-tog"><span>' + esc(label) + '</span><input type="checkbox" role="switch" id="' + id + '"' + (on ? " checked" : "") + "><i></i></label>";
 }
 
+function chips(d) {
+  const o = overallStats(d), st = streak(d), t = today();
+  const due = d.tasks.filter(x => !x.done && x.due && x.due <= t).length;
+  const out = [];
+  if (o.total) out.push('<a class="pp-chip ' + (o.ok ? "good" : "bad") + '" href="#/attendance"><b>' + pct(o.percent) + "%</b> attendance</a>");
+  if (st.current >= 2) out.push('<a class="pp-chip" href="#/attendance"><b>◆ ' + st.current + "</b> day streak</a>");
+  if (due) out.push('<a class="pp-chip warn" href="#/tasks"><b>' + due + "</b> due / overdue</a>");
+  return out.length ? '<div class="pp-chips">' + out.join("") + "</div>" : "";
+}
+
+function ringAvatar(d) {
+  const o = overallStats(d);
+  const p = o.total ? Math.max(2, Math.min(100, o.percent)) : 0;
+  return '<span class="pp-ring' + (o.total ? (o.ok ? " good" : " bad") : "") + '" style="--p:' + p + '">' + avatar(d, true) + "</span>";
+}
+
 function render(d) {
   const p = d.profile, theme = d.settings.theme;
   const sub = [p.college, p.course, p.semester && "Sem " + p.semester].filter(Boolean).join(" · ");
   const R = rem.prefs();
   pop().innerHTML =
-    '<div class="pp-head">' + avatar(d, true) +
+    '<div class="pp-head">' + ringAvatar(d) +
       '<div class="pp-who"><div class="pp-name">' + esc(p.name || (sync.S.user && sync.S.user.name) || "Your profile") + "</div>" +
       '<div class="pp-sub">' + esc(sub || "Add your college and course") + "</div>" +
       '<div class="pp-sync mono">' + esc(syncLine()) + "</div></div></div>" +
+    chips(d) +
     '<div class="pp-actions"><button class="btn xs" data-pp="edit">Edit profile</button>' +
       (sync.S.user ? '<button class="btn xs ghost" data-pp="syncnow">Sync now</button>' : sync.S.status !== "unavailable" ? '<button class="btn xs solid" data-pp="signin">Sign in with Google</button>' : "") + "</div>" +
+    '<div class="pp-sec"><div class="pp-lab mono">Quick add</div><div class="pp-quick">' +
+      '<button class="btn xs" data-pp="q:task">+ Task</button><button class="btn xs" data-pp="q:note">+ Note</button><button class="btn xs" data-pp="q:present">✓ Mark today</button></div></div>' +
     '<div class="pp-sec"><div class="pp-lab mono">Appearance</div><div class="seg" role="group" aria-label="Theme">' +
       [["dark", "Dark"], ["light", "Light"], ["system", "Auto"]].map(t => '<button data-theme-set="' + t[0] + '" class="' + (theme === t[0] ? "on" : "") + '">' + t[1] + "</button>").join("") + "</div>" +
       (hapticsSupported() ? tog("pp-hap", "Haptic taps", hapticsOn()) : "") +
@@ -62,6 +84,11 @@ function render(d) {
       row("go:assistant", "Ask Campus AI", aiOn() ? "on" : "✦") +
       row("cal", "Add to calendar", ".ics") +
       (canInstall() ? row("install", "Install as an app", "") : "") +
+    "</div>" +
+    '<div class="pp-sec">' +
+      row("invite", "Invite a classmate", "↗") +
+      row("backup", "Download backup", ".json") +
+      '<a class="pp-row" href="https://github.com/hrishikeshdas366-eng/campus-os/issues" target="_blank" rel="noopener"><span>Send feedback</span><span class="mono faint">↗</span></a>' +
     "</div>" +
     '<div class="pp-sec pp-foot">' +
       '<a class="pp-row" href="privacy.html"><span>Privacy</span></a>' +
@@ -130,6 +157,19 @@ export function initProfile() {
     if (act === "go") { location.hash = "#/" + arg; setOpen(false); }
     else if (act === "edit") { setOpen(false); profileForm(); }
     else if (act === "cal") { setOpen(false); calendarExportForm(); }
+    else if (act === "q") {
+      setOpen(false);
+      if (arg === "task") taskForm(null);
+      else if (arg === "note") noteForm(null);
+      else import("./views/attendance.js").then(m => m.markRemaining(today(), "present"));
+    }
+    else if (act === "invite") {
+      const url = location.origin + location.pathname.replace(/index\.html$/, "");
+      const text = "I use Campus OS to track attendance, timetable and deadlines — free and private.";
+      try { if (navigator.share) { await navigator.share({ title: "Campus OS", text, url }); return; } } catch (err) { if (err && err.name === "AbortError") return; }
+      try { await navigator.clipboard.writeText(url); toast("Link copied — send it to a friend"); } catch (_) { toast(url); }
+    }
+    else if (act === "backup") { download("campus-os-backup-" + today() + ".json", JSON.stringify(store.data, null, 1)); toast("Backup downloaded"); }
     else if (act === "install") { setOpen(false); installFlow(); }
     else if (act === "signin") { setOpen(false); sync.signIn(); }
     else if (act === "syncnow") { sync.syncNow(); }

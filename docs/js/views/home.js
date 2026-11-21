@@ -5,6 +5,11 @@ import { classRows, bindClassRows } from "./attendance.js";
 import { emptyState } from "./common.js";
 import { streak, risks, nextPlan } from "../insights.js";
 import { nowCard, liveNow } from "./now.js";
+import { replaceAll } from "../store.js";
+import { demoData } from "../demo.js";
+import { profileForm } from "../profile.js";
+import * as sync from "../sync.js";
+import { toast } from "../ui.js";
 
 let raf = 0;
 
@@ -19,6 +24,7 @@ export function render(root, d) {
   const nx = nextClass(d);
   const name = (d.profile.name || "").split(" ")[0];
   const subs = d.subjects.filter(s => !s.archived);
+  const fresh = !subs.length;
   const unmarked = todays.filter(c => !d.attendance.some(r => r.date === t && r.slotId === c.id)).length;
 
   const headline = name
@@ -49,18 +55,17 @@ export function render(root, d) {
       '<canvas id="hero-canvas" aria-hidden="true"></canvas>' +
       '<p class="mono muted fade-up" style="--d:.1s">' + esc([d.profile.college, d.profile.course, d.profile.semester && "Semester " + d.profile.semester].filter(Boolean).join(" · ") || "The all-in-one college companion") + "</p>" +
       '<h1 class="display h-xl" style="margin-top:18px">' + maskLines(headline) + "</h1>" +
-      '<div class="hero-meta">' +
+      (fresh ? heroCta() : '<div class="hero-meta">' +
         stat("#/attendance", "Attendance", o.total ? pct(o.percent) + "%" : "—", o.total ? verdict(o).text : "Start marking classes", o.total ? (o.ok ? "good" : "bad") : "", ".2s") +
         stat("#/attendance", "Classes today", String(todays.length), todays.length ? (unmarked ? unmarked + " to mark" : "All marked ✓") : "Free day", "", ".28s") +
         stat("#/tasks", "Due this week", String(dueSoon.length), overdue.length ? overdue.length + " overdue" : plural(pending.length, "open task"), overdue.length ? "bad" : "", ".36s") +
         stat("#/exams", "Next exam", exams[0] ? daysLabel(daysBetween(t, exams[0].date)) : "—", exams[0] ? (subjById(exams[0].subjectId)?.name || exams[0].title || "Exam") : "None scheduled", "", ".44s") +
-      "</div>" +
+      "</div>") +
     "</section>" +
     '<div class="marquee" aria-hidden="true"><div class="track">' + tick + tick + "</div><div class=\"track\">" + tick + tick + "</div></div>" +
     '<div class="page" style="padding-top:clamp(40px,6vw,80px)">' +
-      (subs.length ? "" : onboarding(d)) +
-      nowCard(d) + wrappedTeaser(d) +
-      '<div class="grid g2" style="gap:clamp(20px,4vw,56px);align-items:start">' +
+      (fresh ? welcome(d) : timetableNudge(d, subs) + nowCard(d) + wrappedTeaser(d)) +
+      (fresh ? "" : '<div class="grid g2" style="gap:clamp(20px,4vw,56px);align-items:start">' +
         '<section><div class="section-head"><h2 class="h-md">Today</h2><span class="mono">' + esc(DAYS_LONG[(new Date().getDay() + 6) % 7]) + "</span></div>" +
           (todays.length ? classRows(d, t) :
             emptyState(subs.length ? "No classes today" : "No timetable yet", subs.length ? "Enjoy the free day — or add an extra class from Attendance." : "Add subjects and your weekly classes to see them here.",
@@ -72,7 +77,7 @@ export function render(root, d) {
         "</section>" +
       "</div>" +
       headsUp(d) +
-      weekSection(d) +
+      weekSection(d)) +
       (subs.length ? '<section class="section"><div class="section-head"><h2 class="h-md">Subjects</h2><a class="mono" href="#/attendance">Attendance →</a></div>' +
         '<div class="grid auto">' + subs.map(s => miniSubject(d, s)).join("") + "</div></section>" : "") +
     "</div>";
@@ -87,7 +92,11 @@ export function render(root, d) {
     if (act === "add-task") taskForm(null);
     if (act === "toggle-task") toggleTask(a.dataset.id);
     if (act === "edit-task") taskForm(d.tasks.find(x => x.id === a.dataset.id));
-    if (act === "profile") location.hash = "#/settings";
+    if (act === "profile") profileForm();
+    if (act === "import") import("../import.js").then(m => m.openImport());
+    if (act === "sample") { replaceAll(demoData()); toast("Sample data loaded — explore around!"); }
+    if (act === "signin") sync.signIn();
+    if (act === "settings") location.hash = "#/settings";
   });
 
   startCanvas(root.querySelector("#hero-canvas"));
@@ -126,16 +135,50 @@ function miniSubject(d, s) {
     '<div class="' + v.cls + '" style="font-size:13px">' + esc(v.text) + "</div></a>";
 }
 
-function onboarding(d) {
+function heroCta() {
+  return '<div class="hero-cta fade-up" style="--d:.25s">' +
+    '<button class="btn solid" data-act="add-subject">Add your first subject</button>' +
+    '<button class="btn" data-act="import">Import timetable from a photo</button>' +
+    '<button class="btn ghost" data-act="sample">Try with sample data</button></div>';
+}
+
+/** Shown when subjects exist but no weekly classes yet — the live "Now" card needs a timetable. */
+function timetableNudge(d, subs) {
+  if (!subs.length || d.timetable.length) return "";
+  return '<section class="nowcard nudge"><div class="nc-top"><span class="mono">One more step</span></div>' +
+    '<div class="nc-title">Add your weekly timetable</div><div class="nc-meta">Then Home shows the class happening right now, with one-tap attendance.</div>' +
+    '<div class="nc-acts"><button class="btn solid" data-act="add-class">+ Add a class</button><button class="btn" data-act="import">Import from photo / PDF</button></div></section>';
+}
+
+/** First-run Home: a clear next step, a preview of the payoff, and what else is optional. */
+function welcome(d) {
   const steps = [
-    ["01", "Tell us about you", "Name, college and your attendance target.", "profile", !!d.profile.name],
-    ["02", "Add your subjects", "Course names, codes, faculty and credits.", "add-subject", d.subjects.length > 0],
-    ["03", "Build your timetable", "Your weekly classes — then mark attendance in one tap.", "add-class", d.timetable.length > 0],
+    { t: "Tell us about you", d: "Name, college and your attendance target.", act: "profile", label: "Add details", done: !!d.profile.name },
+    { t: "Add your subjects", d: "Course names, codes, faculty and credits.", act: "add-subject", label: "+ Subject", done: d.subjects.length > 0 },
+    { t: "Build your timetable", d: "Add your weekly classes — or import them from a photo or PDF.", act: "add-class", label: "+ Class", alt: ["import", "Import"], done: d.timetable.length > 0 },
   ];
-  return '<section style="margin-bottom:clamp(40px,5vw,72px)"><div class="section-head"><h2 class="h-md">Set up in three steps</h2><span class="mono">About 2 minutes</span></div>' +
-    '<div class="grid g3">' + steps.map(s =>
-      '<button class="card hover" data-act="' + s[3] + '" style="text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:12px;min-height:180px">' +
-      '<span class="mono muted">' + s[0] + (s[4] ? " — done ✓" : "") + '</span><span class="h-md">' + s[1] + '</span><span class="muted" style="margin-top:auto">' + s[2] + "</span></button>").join("") +
+  const doneN = steps.filter(x => x.done).length, cur = steps.findIndex(x => !x.done);
+  const rows = steps.map((x, i) =>
+    '<div class="setup-item' + (x.done ? " done" : i === cur ? " cur" : "") + '"><span class="setup-n">' + (x.done ? "✓" : i + 1) + "</span>" +
+    '<div class="grow"><div class="title">' + esc(x.t) + '</div><div class="sub">' + esc(x.d) + "</div></div>" +
+    (x.done ? '<span class="mono faint">Done</span>' : '<span class="setup-acts"><button class="btn sm' + (i === cur ? " solid" : "") + '" data-act="' + x.act + '">' + esc(x.label) + "</button>" +
+      (x.alt ? '<button class="btn sm ghost" data-act="' + x.alt[0] + '">' + esc(x.alt[1]) + "</button>" : "") + "</span>") + "</div>").join("");
+  return '<section class="welcome">' +
+    '<div class="grid g2" style="gap:clamp(24px,4vw,64px);align-items:start">' +
+      '<div><div class="section-head"><h2 class="h-md">Let’s set up your semester</h2><span class="mono">' + doneN + " of 3 · about 2 min</span></div>" +
+        '<div class="setup-bar"><i style="width:' + Math.round(doneN / 3 * 100) + '%"></i></div>' +
+        '<div class="setup">' + rows + "</div>" +
+        '<div class="setup-opt"><span class="mono faint">Optional</span>' +
+          '<button class="chip" data-act="signin">☁ Sync across devices</button>' +
+          '<button class="chip" data-act="settings">🔔 Set up reminders</button>' +
+          '<a class="chip" href="#/focus">◷ Try the focus timer</a></div></div>' +
+      '<div class="welcome-prev" aria-hidden="true"><div class="mono muted" style="margin-bottom:10px">Preview — this is what Home becomes</div>' +
+        '<div class="nowcard live preview"><div class="nc-top"><span class="mono">Now · 10:00am–11:00am</span><span class="nc-live mono"><i></i>Live</span></div>' +
+        '<div class="nc-title">Data Structures</div><div class="nc-meta">Lecture · Room 204</div>' +
+        '<div class="nc-prog"><i style="width:38%"></i></div><div class="nc-count">37 min left</div>' +
+        '<div class="nc-acts"><span class="btn sm good-b">Present</span><span class="btn sm bad-b">Absent</span><span class="btn sm">Cancelled</span></div>' +
+        '<div class="nc-next">Then: <b>Database Systems</b> at 11:15am · Lab 3</div></div>' +
+        '<ul class="welcome-feats"><li><b>Know what’s safe to skip</b> — before you decide to bunk</li><li><b>Never miss a deadline</b> — tasks, exams and reminders in one place</li><li><b>Private by design</b> — your data stays on your device unless you sync</li></ul></div>' +
     "</div></section>";
 }
 
