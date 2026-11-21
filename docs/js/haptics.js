@@ -1,9 +1,21 @@
 // Subtle tap feedback on touch devices.
 // Android/Chrome: Vibration API. iOS Safari (17.4+): toggling a native <input switch> gives a light haptic tick.
 let sw = null, busy = false;
+const KEY = "campusos:haptics";
+
+// Per-device preference (a phone may want it, a laptop doesn't) — so it is kept locally, not in the synced data.
+export function hapticsOn() {
+  try { return localStorage.getItem(KEY) !== "off"; } catch (_) { return true; }
+}
+export function setHaptics(on) {
+  try { localStorage.setItem(KEY, on ? "on" : "off"); } catch (_) { /* ignore */ }
+}
+export function hapticsSupported() {
+  return matchMedia("(pointer: coarse)").matches;
+}
 
 export function haptic(strong) {
-  if (busy || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (busy || !hapticsOn() || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   try { if (navigator.vibrate && navigator.vibrate(strong ? 18 : 8)) return; } catch (_) { /* fall through */ }
   try {
     busy = true;
@@ -26,7 +38,7 @@ export function initHaptics() {
   document.addEventListener("click", e => {
     if (busy) return;
     const t = e.target.closest && e.target.closest("button, .btn, [data-ca], [data-a], input[type=checkbox], input[type=radio], .menu-link, .slot, .cal .d");
-    if (!t || t.disabled || t.closest("[aria-hidden=true]")) return;
+    if (!t || t.id === "hap" || t.disabled || t.closest("[aria-hidden=true]")) return;
     haptic(t.matches(".good-b, .bad-b, [data-st]"));
   }, true);
 }

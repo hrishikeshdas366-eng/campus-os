@@ -1,3 +1,4 @@
+import { haptic, hapticsOn, setHaptics, hapticsSupported } from "../haptics.js";
 import { esc, toast, download, today, plural } from "../ui.js";
 import { store, update, replaceAll, emptyData } from "../store.js";
 import { demoData } from "../demo.js";
@@ -50,7 +51,8 @@ export function render(root, d) {
       '<label class="field"><span>Currency symbol</span><input name="currency" value="' + esc(s.currency) + '" maxlength="4"></label>' +
       '<label class="field"><span>Focus session (minutes)</span><input name="focusMinutes" type="number" min="1" max="180" value="' + esc(s.focusMinutes) + '"></label>' +
       '<label class="field"><span>Break (minutes)</span><input name="breakMinutes" type="number" min="1" max="60" value="' + esc(s.breakMinutes) + '"></label>' +
-      '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" name="intro"' + (s.intro ? " checked" : "") + '><span>Show the intro animation when the app opens</span></label></div>' +
+      '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" name="intro"' + (s.intro ? " checked" : "") + '><span>Show the intro animation when the app opens</span></label>' +
+      (hapticsSupported() ? '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="hap"' + (hapticsOn() ? " checked" : "") + '><span>Haptic taps on this device <span class="muted">(applies instantly, this device only)</span></span></label>' : "") + "</div>" +
       '<div class="row" style="margin-top:16px"><button class="btn solid" type="submit">Save preferences</button></div></form>' +
 
     syncSection() +
@@ -75,6 +77,8 @@ export function render(root, d) {
     });
     toast("Profile saved");
   });
+  const hap = root.querySelector("#hap");
+  if (hap) hap.addEventListener("change", () => { setHaptics(hap.checked); if (hap.checked) haptic(true); toast(hap.checked ? "Haptics on" : "Haptics off"); });
   root.querySelector("#pref").addEventListener("submit", e => {
     e.preventDefault();
     const f = new FormData(e.target);
