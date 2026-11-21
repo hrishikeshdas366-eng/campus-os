@@ -6,7 +6,9 @@ import { classesOn, subjectStats } from "./calc.js";
 import * as sync from "./sync.js";
 
 const SDK = "https://www.gstatic.com/firebasejs/11.10.0/";
-const MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"];
+// Fast "lite" model first (answers in ~1-2 s); the full flash model is only a fallback. Aliases track Google's newest versions.
+const MODELS = ["gemini-flash-lite-latest", "gemini-flash-latest"];
+const TIMEOUT_MS = 40000;
 const KEY = "campusos:ai";
 
 export const aiOn = () => { try { return localStorage.getItem(KEY) === "on"; } catch (_) { return false; } };
@@ -27,6 +29,7 @@ function friendly(e) {
   const m = String((e && (e.message || e.code)) || e);
   if (/429|quota|rate|exhaust|too many/i.test(m)) return "Campus AI is busy right now (the free limit was reached). Try again in a minute.";
   if (/api-not-enabled|API.{0,40}enabled|api.?key|permission|403|disabled|has not been used/i.test(m)) return "The AI service isn't switched on for this app yet.";
+  if (/timed out/i.test(m)) return "The AI is taking too long. Try again in a moment.";
   if (/network|fetch|offline|Failed to/i.test(m)) return "Couldn't reach the AI. Check your internet connection.";
   if (/safety|blocked/i.test(m)) return "The AI declined to answer that one. Try rephrasing.";
   return "The AI hit a problem: " + m.slice(0, 160);
@@ -45,7 +48,7 @@ export async function generate(prompt, o) {
         systemInstruction: o.system || undefined,
         generationConfig: Object.assign({ temperature: 0.6, maxOutputTokens: 2048 }, o.json ? { responseMimeType: "application/json" } : {}),
       });
-      const res = await model.generateContent(prompt);
+      const res = await Promise.race([model.generateContent(prompt), new Promise((_, rej) => setTimeout(() => rej(new Error("timed out — the AI took too long")), TIMEOUT_MS))]);
       modelName = name;
       return res.response.text();
     } catch (e) {
