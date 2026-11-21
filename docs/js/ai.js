@@ -25,7 +25,7 @@ async function load() {
   if (appCheckSiteKey && !["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
     try {
       const acM = await import(SDK + "firebase-app-check.js");
-      acM.initializeAppCheck(app, { provider: new acM.ReCaptchaV3Provider(appCheckSiteKey), isTokenAutoRefreshEnabled: true });
+      acM.initializeAppCheck(app, { provider: new acM.ReCaptchaEnterpriseProvider(appCheckSiteKey), isTokenAutoRefreshEnabled: true });
     } catch (e) { console.warn("App Check unavailable:", e); }
   }
   ai = { M: aiM, inst: aiM.getAI(app, { backend: new aiM.GoogleAIBackend() }) };
