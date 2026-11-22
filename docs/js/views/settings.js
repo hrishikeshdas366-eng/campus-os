@@ -1,3 +1,4 @@
+import { fabOn, setFab } from "../fab.js";
 import { haptic, hapticsOn, setHaptics, hapticsSupported } from "../haptics.js";
 import { esc, toast, download, today, plural } from "../ui.js";
 import { store, update, replaceAll, emptyData } from "../store.js";
@@ -75,7 +76,7 @@ export function render(root, d) {
       '<label class="field"><span>Focus session (minutes)</span><input name="focusMinutes" type="number" min="1" max="180" value="' + esc(s.focusMinutes) + '"></label>' +
       '<label class="field"><span>Break (minutes)</span><input name="breakMinutes" type="number" min="1" max="60" value="' + esc(s.breakMinutes) + '"></label>' +
       '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" name="intro"' + (s.intro ? " checked" : "") + '><span>Show the intro animation when the app opens</span></label>' +
-      (hapticsSupported() ? '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="hap"' + (hapticsOn() ? " checked" : "") + '><span>Haptic taps on this device <span class="muted">(applies instantly, this device only)</span></span></label>' : "") + "</div>" +
+      '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="fabt"' + (fabOn() ? " checked" : "") + '><span>Floating quick-access button <span class="muted">(ask AI, add task/note from any page · shortcut: <kbd>/</kbd> or ⌘K)</span></span></label>' + (hapticsSupported() ? '<label class="field full" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="hap"' + (hapticsOn() ? " checked" : "") + '><span>Haptic taps on this device <span class="muted">(applies instantly, this device only)</span></span></label>' : "") + "</div>" +
       '<div class="row" style="margin-top:16px"><button class="btn solid" type="submit">Save preferences</button></div></form>' +
 
     deviceSection() +
@@ -118,6 +119,7 @@ export function render(root, d) {
     if (await ai.consent()) { setAi(true); toast("Campus AI allowed"); } else e.target.checked = false;
   });
   const hap = root.querySelector("#hap");
+  root.querySelector("#fabt")?.addEventListener("change", e => { setFab(e.target.checked); toast(e.target.checked ? "Floating button on" : "Floating button off"); });
   if (hap) hap.addEventListener("change", () => { setHaptics(hap.checked); if (hap.checked) haptic(true); toast(hap.checked ? "Haptics on" : "Haptics off"); });
   root.querySelector("#pref").addEventListener("submit", e => {
     e.preventDefault();

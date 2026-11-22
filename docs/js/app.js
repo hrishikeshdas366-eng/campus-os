@@ -22,6 +22,7 @@ import { risks } from "./insights.js";
 import { maybeOnboard } from "./onboarding.js";
 import { initProfile } from "./profile.js";
 import { startReminders } from "./reminders.js";
+import { initFab } from "./fab.js";
 
 const ROUTES = [
   { path: "", name: "Home", mod: home, hint: "Overview" },
@@ -177,6 +178,7 @@ async function boot() {
   initHaptics();
   const refreshProfile = initProfile();
   startReminders(() => store.data);
+  initFab();
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
     navigator.serviceWorker.register("sw.js").catch(e => console.warn("Offline mode unavailable:", e));
     navigator.serviceWorker.addEventListener("message", ev => { if (ev.data && ev.data.type === "go" && ev.data.url) location.hash = String(ev.data.url).replace(/^.*#/, "#"); });
